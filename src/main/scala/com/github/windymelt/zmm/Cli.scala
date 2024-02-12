@@ -178,34 +178,6 @@ abstract class Cli(logLevel: String = "INFO")
     ) >>
       IO.println(withColor(scala.io.AnsiColor.GREEN)(s"${BuildInfo.version}"))
 
-  /** ZMMのバージョンを表示する。
-    *
-    * デバッグや問い合わせの助けとしても使う。
-    *
-    * @return
-    *   IO[Unit]
-    */
-  def showVersion: IO[Unit] =
-    IO.print("zmm ver=") >>
-      (BuildInfo.version match {
-        case s"$_-SNAPSHOT" =>
-          IO.print(withColor(scala.io.AnsiColor.YELLOW)(BuildInfo.version))
-        case _ =>
-          IO.print(withColor(scala.io.AnsiColor.GREEN)(BuildInfo.version))
-      }) >>
-      ((System.getenv("IS_DOCKER_ZMM") == "1") match {
-        case true  => IO.print(withColor(scala.io.AnsiColor.CYAN)(" (Docker)"))
-        case false => IO.unit
-      }) >>
-      IO.print(", scalaVer=") >>
-      IO.print(withColor(scala.io.AnsiColor.GREEN)(BuildInfo.scalaVersion)) >>
-      IO.print(", sbtVer=") >>
-      IO.print(withColor(scala.io.AnsiColor.GREEN)(BuildInfo.sbtVersion)) >>
-      IO.print(s", jvm=${System.getProperty("java.vm.name")}") >>
-      IO.print(s", runtimeVer=${Runtime.version().toString()}") >>
-      IO.print(s", vendor=${System.getProperty("java.vendor")}") >>
-      IO.println("")
-
   /** 辞書要素を反映させる。
     *
     * 今のところVOICEVOX用の発音辞書に登録を行うだけだが、今後の開発によってはその他の音声合成ソフトウェアの辞書登録に使ってよい。

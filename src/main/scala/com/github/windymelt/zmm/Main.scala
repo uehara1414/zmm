@@ -3,7 +3,7 @@ package com.github.windymelt.zmm
 import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
-import com.github.windymelt.zmm.application.{CoeiroInkStatus, VoiceVoxStatus}
+import com.github.windymelt.zmm.application.{CoeiroInkStatus, ShowVersion, VoiceVoxStatus}
 import com.monovore.decline.Opts
 import com.monovore.decline.effect.CommandIOApp
 import org.http4s.syntax.header
@@ -19,9 +19,10 @@ object Main
   override def main: Opts[IO[ExitCode]] = CliOptions.opts map { o =>
     val defaultCli = new ChromiumCli(logLevel = "INFO")
     val hoge = new CoeiroInkStatus()
+    val showVersion = new ShowVersion()
 
     o match {
-      case VersionFlag() => defaultCli.showVersion >> IO.pure(ExitCode.Success)
+      case VersionFlag() => showVersion.execute() >> IO.pure(ExitCode.Success)
       case ShowCommand(target) =>
         val voiceVoxStatus = new VoiceVoxStatus
         target match {
