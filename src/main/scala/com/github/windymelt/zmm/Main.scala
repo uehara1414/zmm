@@ -26,7 +26,7 @@ object Main
         target match {
           case "voicevox" =>
             defaultCli.showVoiceVoxSpeakers() >> IO.pure(ExitCode.Success)
-          case "hogehoge" => hoge.show() >> IO.pure(ExitCode.Success)
+          case "coeiroink" => hoge.show() >> IO.pure(ExitCode.Success)
           case _ =>
             IO.println(
               "subcommand [show] only accepts 'voicevox'. try `show voicevox`"
