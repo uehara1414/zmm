@@ -79,9 +79,9 @@ object Filter {
 
   private def shouldCloseMouth(vowel: String): Boolean =
     vowel.toLowerCase match {
-      case "u"  => true
-      case "i"  => true
-      case "n"  => true
+      case "u" | "U" => true
+      case "i" | "I" => true
+      case "n" | "N"  => true
       case "cl" => true
       // TODO: 適宜追加のこと
       case _ => false
