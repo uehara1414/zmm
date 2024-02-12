@@ -14,3 +14,7 @@ fileList.txt
 artifacts/
 assets/
 /.idea/
+
+# Output
+*.mp4
+script.xml
