@@ -1,16 +1,11 @@
 package com.github.windymelt.zmm
 
-import cats.effect.ExitCode
 import cats.effect.IO
-import cats.effect.IOApp
-import cats.effect.std.Mutex
 import com.github.windymelt.zmm.domain.model.Context
 import com.github.windymelt.zmm.domain.model.VoiceBackendConfig
-import org.http4s.syntax.header
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import java.io.OutputStream
 import scala.concurrent.duration.FiniteDuration
 
 abstract class Cli(logLevel: String = "INFO")
@@ -46,34 +41,6 @@ abstract class Cli(logLevel: String = "INFO")
     .get("CHROMIUM_NOSANDBOX")
     .map(_ == "1")
     .getOrElse(config.getBoolean("chromium.nosandbox"))
-
-  def showVoiceVoxSpeakers(): IO[Unit] = {
-    import io.circe.JsonObject
-    import com.mitchtalmadge.asciidata.table.ASCIITable
-    for {
-      speakers <- voiceVox.speakers()
-      speakersTable <- IO.pure {
-        val speakersArray = speakers.asArray.get.flatMap(_.asObject)
-        val styleToSeq = (name: String) =>
-          (id: String) => (styleName: String) => Seq(name, id, styleName)
-        val speakerToSeq = (speaker: JsonObject) => {
-          val styles = speaker("styles").get.asArray.get.flatMap(_.asObject)
-          styles map (s =>
-            styleToSeq(speaker("name").get.asString.get)(
-              s("id").get.asNumber.get.toString
-            )(s("name").get.asString.get)
-          )
-        }
-        speakersArray.flatMap(speakerToSeq).map(_.toArray).toArray
-      }
-      _ <- IO.println(
-        ASCIITable.fromData(
-          Seq("voice", "voice ID", "style").toArray,
-          speakersTable
-        )
-      )
-    } yield ()
-  }
 
   def generate(filePath: String, outPathString: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
@@ -498,5 +465,4 @@ abstract class Cli(logLevel: String = "INFO")
     piece(s"⢄ $message") *> piece(s"⠢ $message") *> piece(
       s"⠑ $message"
     ) *> piece(s"⡈ $message") foreverM
-
 }

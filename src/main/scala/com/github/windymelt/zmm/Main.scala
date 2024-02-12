@@ -3,7 +3,7 @@ package com.github.windymelt.zmm
 import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
-import com.github.windymelt.zmm.application.CoeiroInkStatus
+import com.github.windymelt.zmm.application.{CoeiroInkStatus, VoiceVoxStatus}
 import com.monovore.decline.Opts
 import com.monovore.decline.effect.CommandIOApp
 import org.http4s.syntax.header
@@ -23,9 +23,10 @@ object Main
     o match {
       case VersionFlag() => defaultCli.showVersion >> IO.pure(ExitCode.Success)
       case ShowCommand(target) =>
+        val voiceVoxStatus = new VoiceVoxStatus
         target match {
           case "voicevox" =>
-            defaultCli.showVoiceVoxSpeakers() >> IO.pure(ExitCode.Success)
+            voiceVoxStatus.showVoiceVoxSpeakers() >> IO.pure(ExitCode.Success)
           case "coeiroink" => hoge.show() >> IO.pure(ExitCode.Success)
           case _ =>
             IO.println(
