@@ -35,7 +35,7 @@ trait ChromeScreenShotComponent {
         case true =>
           os.proc(
             chromeCommand,
-            "--headless=new",
+            "--headless",
             "--no-sandbox",
             "--hide-scrollbars",
             s"--screenshot=${htmlFilePath}.png",
@@ -46,7 +46,7 @@ trait ChromeScreenShotComponent {
         case false =>
           os.proc(
             chromeCommand,
-            "--headless=new",
+            "--headless",
             "--hide-scrollbars",
             s"--screenshot=${htmlFilePath}.png",
             s"--window-size=${windowWidth},${windowHeight}",
