@@ -3,6 +3,7 @@ package com.github.windymelt.zmm
 import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
+import com.github.windymelt.zmm.application.CoeiroInkStatus
 import com.monovore.decline.Opts
 import com.monovore.decline.effect.CommandIOApp
 import org.http4s.syntax.header
@@ -17,6 +18,7 @@ object Main
     ) {
   override def main: Opts[IO[ExitCode]] = CliOptions.opts map { o =>
     val defaultCli = new ChromiumCli(logLevel = "INFO")
+    val hoge = new CoeiroInkStatus()
 
     o match {
       case VersionFlag() => defaultCli.showVersion >> IO.pure(ExitCode.Success)
@@ -24,6 +26,7 @@ object Main
         target match {
           case "voicevox" =>
             defaultCli.showVoiceVoxSpeakers() >> IO.pure(ExitCode.Success)
+          case "hogehoge" => hoge.show() >> IO.pure(ExitCode.Success)
           case _ =>
             IO.println(
               "subcommand [show] only accepts 'voicevox'. try `show voicevox`"

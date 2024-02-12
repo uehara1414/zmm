@@ -51,7 +51,9 @@ object ScreenShotBackend {
 object CliOptions {
   private val showCommand =
     Opts.subcommand(name = "show", help = "Prints information.")(
-      Opts.argument[String]("voicevox").map(ShowCommand.apply)
+      Opts
+        .argument[String]("voicevox | hogehoge")
+        .map(ShowCommand.apply)
     )
 
   private val targetFile =
