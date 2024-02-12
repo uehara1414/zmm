@@ -33,11 +33,8 @@ trait CoeiroInkComponent {
             vec => {
               IO {
                 vec.map {
-                  json =>
-                    json
-                      .asObject
-                      .flatMap(_("speakerName"))
-                      .flatMap(_.asString)}
+                  json => json.asObject.flatMap { x => x("speakerName").get.asString }
+                }
               }
             }
           }
