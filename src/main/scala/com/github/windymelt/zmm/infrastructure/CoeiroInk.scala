@@ -11,7 +11,8 @@ import org.http4s.circe.CirceEntityDecoder.*
 case class SpeakerResponse(speakerName: String)
 
 case class Speaker(
-  name: String
+  name: String,
+  uuid: String
 )
 
 trait CoeiroInkComponent {
@@ -33,12 +34,16 @@ trait CoeiroInkComponent {
             vec => {
               IO {
                 vec.map {
-                  json => json.asObject.flatMap { x => x("speakerName").get.asString }
-                }
+                  json => json.asObject
+                }.flatMap(_.toSeq)
+                  .map {
+                    x => Speaker.apply(name = x("speakerName").get.asString.get,
+                      uuid = x("speakerUuid").get.asString.get)
+                  }
               }
             }
           }
-        } yield result.flatMap(_.toSeq).map(Speaker(_))
+        } yield result
       }
     }
 

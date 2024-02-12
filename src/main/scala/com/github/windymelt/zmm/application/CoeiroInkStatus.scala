@@ -18,7 +18,7 @@ class CoeiroInkStatus
     for {
       _ <- coeiroInk.speakers.flatMap { speakers =>
         IO {
-          println(s"Speakers: ${speakers.map(_.name).mkString(", ")}")
+          println(speakers)
         }
       }
     } yield {}
