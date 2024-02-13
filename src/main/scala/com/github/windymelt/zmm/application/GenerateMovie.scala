@@ -52,7 +52,6 @@ class GenerateMovie(
 
     for {
       _ <- logger.debug(s"generate($filePath, $outPathString)")
-      _ <- showLogo
       _ <- logger.debug(s"pwd: ${System.getProperty("user.dir")}")
       _ <- logger.debug(s"voicevox api: ${voiceVoxUri}")
       _ <- logger.debug(
@@ -167,14 +166,6 @@ class GenerateMovie(
       _ <- logger.info(s"Done! Generated to $outPathString")
     } yield ()
 
-  }
-
-  private def showLogo: IO[Unit] = {
-    IO.println(
-      withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(zmmLogo)
-    )
-    // BuildInfoがなぜここで呼び出せないのかはわからないが調べるのがだるいので今はコメントアウト
-    // >> IO.println(withColor(scala.io.AnsiColor.GREEN)(s"${BuildInfo.version}"))
   }
 
   private def withColor(color: String) = (s: String) =>
