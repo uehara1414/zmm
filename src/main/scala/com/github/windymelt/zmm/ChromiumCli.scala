@@ -4,29 +4,16 @@ import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
 import cats.implicits._
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-class ChromiumCli(logLevel: String = "INFO")
-    extends Cli(logLevel = logLevel)
-    with infrastructure.ChromeScreenShotComponent {
-  val chromiumCommand =
-    sys.env.get("CHROMIUM_CMD").getOrElse(config.getString("chromium.command"))
+class ChromiumCli(logLevel: String = "INFO") {
+  implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
-  def screenShotResource: IO[Resource[IO, ScreenShot]] = {
+  def generate(file: String, out: String): IO[Unit] = {
     for {
-      _ <- logger.debug(
-        s"chromium command: $chromiumCommand, chromoumNoSandBox: $chromiumNoSandBox"
-      )
-      mu <- Mutex[IO]
-    } yield mu.lock.map { _ =>
-      new ChromeScreenShot(
-        chromiumCommand,
-        logLevel match {
-          case "TRACE" => ChromeScreenShot.Verbose
-          case "DEBUG" => ChromeScreenShot.Verbose
-          case _       => ChromeScreenShot.Quiet
-        },
-        chromiumNoSandBox
-      )
-    }
+      _ <- logger.debug(s"Generating $out from $file")
+      _ <- logger.debug(s"Log level: $logLevel")
+    } yield ()
   }
 }

@@ -48,7 +48,8 @@ object Main
           case Some(ScreenShotBackend.Chrome) =>
             new ChromiumCli(logLevel = logLevel)
           case Some(ScreenShotBackend.Firefox) =>
-            new FirefoxCli(logLevel = logLevel)
+            new ChromiumCli(logLevel = logLevel)
+            // 互換性を考えるのがめんどいのでしばらくクビ new FirefoxCli(logLevel = logLevel)
           case _ => new ChromiumCli(logLevel = logLevel)
         }
         cli.logger.debug(s"Verbose mode enabled (log level: $logLevel)") >> cli
