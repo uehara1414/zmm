@@ -3,7 +3,7 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
-import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, WavGenerator}
+import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, WavGenerator, XmlSanitizer}
 import com.github.windymelt.zmm.domain.model.{Context, VoiceBackendConfig}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
@@ -27,6 +27,7 @@ class GenerateMovie(
   implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   private def dictionaryApplier = new DictionaryApplier()
   private def audioQueryFetcher = new AudioQueryFetcher()
+  private def xmlSanitizer = new XmlSanitizer()
 
   def ffmpeg =
     new ConcreteFFmpeg(
@@ -51,7 +52,7 @@ class GenerateMovie(
         s"""ffmpeg command: ${config.getString("ffmpeg.command")}"""
       )
       x <- content
-      _ <- contentSanityCheck(x)
+      _ <- xmlSanitizer.check(x)
       defaultCtx <- prepareDefaultContext(x)
       _ <- dictionaryApplier.execute(defaultCtx.dict)
       sayCtxPairs <- IO.pure(
@@ -163,16 +164,6 @@ class GenerateMovie(
 
   private def withColor(color: String) = (s: String) =>
     s"${color.toString()}${s}${scala.io.AnsiColor.RESET}"
-
-  private def contentSanityCheck(elem: scala.xml.Elem): IO[Unit] = {
-    val checkTopElem = elem.label == "content"
-    val ver = elem \@ "version" == "0.0"
-
-    if (!(checkTopElem && ver)) {
-      throw new Exception("Invalid scenary XML") // TODO: 丁寧なエラーメッセージ
-    }
-    IO.unit
-  }
 
   private def prepareDefaultContext(elem: scala.xml.Elem): IO[Context] = {
     val voiceConfigList = elem \ "meta" \ "voiceconfig"
