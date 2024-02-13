@@ -1,4 +1,4 @@
-package com.github.windymelt.zmm.application.imageGenaration
+package com.github.windymelt.zmm.application.movieGenaration
 
 import cats.effect.IO
 import com.github.windymelt.zmm.{domain, infrastructure, util}
