@@ -2,13 +2,9 @@ package com.github.windymelt.zmm
 
 import cats.effect.ExitCode
 import cats.effect.IO
-import cats.effect.IOApp
-import com.github.windymelt.zmm.application.{CoeiroInkStatus, ShowVersion, VoiceVoxStatus}
+import com.github.windymelt.zmm.application.{CoeiroInkStatus, GenerateMovie, ShowVersion, VoiceVoxStatus}
 import com.monovore.decline.Opts
 import com.monovore.decline.effect.CommandIOApp
-import org.http4s.syntax.header
-
-import java.io.OutputStream
 
 object Main
     extends CommandIOApp(
@@ -35,6 +31,7 @@ object Main
             ) >> IO.pure(ExitCode.Error)
         }
       case Generate(file, out, screenShotBackend, verbosity) =>
+        // screenShotBackendは設計が安定するまはchromiumだけ使うので無視
         val optionalLogLevel = verbosityToLogLevel(
           vCount = verbosity.getOrElse(0),
           qCount = 0 /* TODO: implement it later */
@@ -43,20 +40,9 @@ object Main
         val logLevel = environmentalLogLevel.getOrElse(optionalLogLevel)
         setLogLevel(logLevel)
 
-        val cli = screenShotBackend match {
-          // TODO: ffmpeg verbosityをcli opsから設定可能にする
-          case Some(ScreenShotBackend.Chrome) =>
-            new ChromiumCli(logLevel = logLevel)
-          case Some(ScreenShotBackend.Firefox) =>
-            new ChromiumCli(logLevel = logLevel)
-            // 互換性を考えるのがめんどいのでしばらくクビ new FirefoxCli(logLevel = logLevel)
-          case _ => new ChromiumCli(logLevel = logLevel)
-        }
-        cli.logger.debug(s"Verbose mode enabled (log level: $logLevel)") >> cli
-          .generate(
-            file.target.toString,
-            out.toAbsolutePath.toString
-          ) >>
+        val generator = new GenerateMovie(file.target.toString, out.toAbsolutePath.toString, logLevel)
+
+        generator.execute >>
           IO.pure(ExitCode.Success)
       case InitializeCommand() =>
         application.Init.initializeProject() >> IO.pure(ExitCode.Success)
