@@ -3,7 +3,7 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
-import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier}
+import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, WavGenerator}
 import com.github.windymelt.zmm.domain.model.{Context, VoiceBackendConfig}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
@@ -305,7 +305,7 @@ class GenerateMovie(
     aq <- ctx.speed map (sp => voiceVox.controlSpeed(aq, sp)) getOrElse (IO
       .pure(aq))
     wav <- backgroundIndicator("Synthesizing wav").use { _ =>
-      buildWavFile(aq, ctx.spokenByCharacterId.get, voiceVox, ctx)
+      wavGenerator.execute(aq, ctx.spokenByCharacterId.get, ctx)
     }
     sha1Hex <- sha1HexCode(sayElem.text.getBytes())
     path <- backgroundIndicator("Exporting .wav file").use { _ =>
@@ -315,19 +315,7 @@ class GenerateMovie(
     vowels <- voiceVox.getVowels(aq)
   } yield (path, dur, vowels)
 
-  private def buildWavFile(
-      aq: AudioQuery,
-      character: String,
-      voiceVox: VoiceVox,
-      ctx: Context
-  ): IO[fs2.Stream[IO, Byte]] = {
-    val characterConfig = ctx.characterConfigMap(character)
-    val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
-    // VOICEVOX特有の実装 いずれどこかの層に分離する
-    val speakerId =
-      voiceConfig.asInstanceOf[domain.model.VoiceVoxBackendConfig].speakerId
-    voiceVox.synthesis(aq, speakerId)
-  }
+  private def wavGenerator = new WavGenerator()
 
   private def applyFilters(
       pairs: Seq[(domain.model.Say, Context)]
