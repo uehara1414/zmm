@@ -13,7 +13,6 @@ object Main
         "Zunda Movie Maker -- see https://www.3qe.us/zmm/doc/ for more documentation"
     ) {
   override def main: Opts[IO[ExitCode]] = CliOptions.opts map { o =>
-    val defaultCli = new ChromiumCli(logLevel = "INFO")
     val hoge = new CoeiroInkStatus()
     val showVersion = new ShowVersion()
 
