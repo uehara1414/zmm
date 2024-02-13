@@ -37,14 +37,6 @@ class GenerateMovie(
       }
     ) // TODO: respect construct parameter
 
-  val zmmLogo =
-    """ _________  ______  ___
-|___  /|  \/  ||  \/  |
- / / | .  . || .  . |
-/ /  | |\/| || |\/| |
-./ /___| |  | || |  | |
-\_____/\_|  |_/\_|  |_/"""
-
   val voiceVoxUri = sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
 
   def execute: IO[Unit] = {
