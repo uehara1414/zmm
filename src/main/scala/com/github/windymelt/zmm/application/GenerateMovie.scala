@@ -3,6 +3,7 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
+import com.github.windymelt.zmm.application.imageGenaration.DictionaryApplier
 import com.github.windymelt.zmm.domain.model.{Context, VoiceBackendConfig}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
@@ -16,14 +17,15 @@ class GenerateMovie(
     outPathString: String,
     logLevel: String = "INFO"
 ) extends domain.repository.FFmpegComponent
-    with domain.repository.VoiceVoxComponent
-    with domain.repository.ScreenShotComponent
     with infrastructure.FFmpegComponent
+    with domain.repository.VoiceVoxComponent
     with infrastructure.VoiceVoxComponent
+    with domain.repository.ScreenShotComponent
     with infrastructure.ChromeScreenShotComponent
     with util.UtilComponent {
 
   implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  private def dictionaryApplier = new DictionaryApplier()
 
   def ffmpeg =
     new ConcreteFFmpeg(
@@ -42,8 +44,8 @@ class GenerateMovie(
 / /  | |\/| || |\/| |
 ./ /___| |  | || |  | |
 \_____/\_|  |_/\_|  |_/"""
-  val voiceVoxUri =
-    sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
+
+  val voiceVoxUri = sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
 
   def execute: IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
@@ -59,7 +61,7 @@ class GenerateMovie(
       x <- content
       _ <- contentSanityCheck(x)
       defaultCtx <- prepareDefaultContext(x)
-      _ <- applyDictionary(defaultCtx)
+      _ <- dictionaryApplier.execute(defaultCtx.dict)
       sayCtxPairs <- IO.pure(
         Context.fromNode((x \ "dialogue").head, defaultCtx)
       )
@@ -186,23 +188,6 @@ class GenerateMovie(
       throw new Exception("Invalid scenary XML") // TODO: 丁寧なエラーメッセージ
     }
     IO.unit
-  }
-
-  /** 辞書要素を反映させる。
-    *
-    * 今のところVOICEVOX用の発音辞書に登録を行うだけだが、今後の開発によってはその他の音声合成ソフトウェアの辞書登録に使ってよい。
-    *
-    * @param ctx
-    *   辞書を取り出す元となるコンテキスト
-    * @return
-    *   有用な情報は返されない
-    */
-  private def applyDictionary(ctx: Context): IO[Unit] = {
-    import cats.syntax.parallel._
-    val registerList = ctx.dict.map { d =>
-      voiceVox.registerDict(d._1, d._2, d._3)
-    }
-    registerList.reduceLeft[IO[Unit]] { case (acc, i) => i >> acc }
   }
 
   private def prepareDefaultContext(elem: scala.xml.Elem): IO[Context] = {
