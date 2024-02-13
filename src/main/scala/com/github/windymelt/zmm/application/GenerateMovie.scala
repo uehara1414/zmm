@@ -3,7 +3,7 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
-import com.github.windymelt.zmm.application.movieGenaration.DictionaryApplier
+import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier}
 import com.github.windymelt.zmm.domain.model.{Context, VoiceBackendConfig}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
@@ -26,6 +26,7 @@ class GenerateMovie(
 
   implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   private def dictionaryApplier = new DictionaryApplier()
+  private def audioQueryFetcher = new AudioQueryFetcher()
 
   def ffmpeg =
     new ConcreteFFmpeg(
@@ -294,10 +295,9 @@ class GenerateMovie(
     ) // sicがない場合は元々のセリフを使う
     aq <- backgroundIndicator("Building Audio Query").use { _ =>
       // by属性がないことはないやろという想定でgetしている
-      buildAudioQuery(
+      audioQueryFetcher.fetch(
         actualPronunciation,
         ctx.spokenByCharacterId.get,
-        voiceVox,
         ctx
       )
     }
@@ -314,20 +314,6 @@ class GenerateMovie(
     dur <- ffmpeg.getWavDuration(path.toString)
     vowels <- voiceVox.getVowels(aq)
   } yield (path, dur, vowels)
-
-  private def buildAudioQuery(
-      text: String,
-      character: String,
-      voiceVox: VoiceVox,
-      ctx: Context
-  ) = {
-    val characterConfig = ctx.characterConfigMap(character)
-    val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
-    // VOICEVOX特有の実装 いずれどこかの層に分離する
-    val speakerId =
-      voiceConfig.asInstanceOf[domain.model.VoiceVoxBackendConfig].speakerId
-    voiceVox.audioQuery(text, speakerId)
-  }
 
   private def buildWavFile(
       aq: AudioQuery,
