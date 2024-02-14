@@ -3,7 +3,7 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
-import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, WavGenerator, XmlSanitizer}
+import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, HtmlBuilder, WavGenerator, XmlSanitizer}
 import com.github.windymelt.zmm.domain.model.{Context, VoiceBackendConfig}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
@@ -28,6 +28,7 @@ class GenerateMovie(
   private def dictionaryApplier = new DictionaryApplier()
   private def audioQueryFetcher = new AudioQueryFetcher()
   private def xmlSanitizer = new XmlSanitizer()
+  private def htmlBuilder = new HtmlBuilder()
 
   def ffmpeg =
     new ConcreteFFmpeg(
@@ -371,11 +372,8 @@ class GenerateMovie(
     } yield imgs
   }
 
-  // TODO: Templaceコンポーネントとかに切り出す
   private def buildHtmlFile(serif: String, ctx: Context): IO[String] = {
-    IO {
-      html.sample(serif = serif, ctx = ctx).body
-    }
+    htmlBuilder.build(serif, ctx)
   }
 
   val chromiumCommand =
