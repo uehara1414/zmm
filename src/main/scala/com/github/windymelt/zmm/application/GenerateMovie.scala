@@ -3,7 +3,7 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
-import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, HtmlBuilder, WavGenerator, XmlUtil}
+import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, HtmlBuilder, IndicatorHelper, WavGenerator, XmlUtil}
 import com.github.windymelt.zmm.domain.model.{Context, VoiceBackendConfig}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
@@ -22,7 +22,8 @@ class GenerateMovie(
     with infrastructure.VoiceVoxComponent
     with domain.repository.ScreenShotComponent
     with infrastructure.ChromeScreenShotComponent
-    with util.UtilComponent {
+    with util.UtilComponent
+    with IndicatorHelper {
 
   implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   private def dictionaryApplier = new DictionaryApplier()
@@ -47,6 +48,11 @@ class GenerateMovie(
   val chromiumCommand =
     sys.env.get("CHROMIUM_CMD").getOrElse(config.getString("chromium.command"))
 
+  val chromiumNoSandBox = sys.env
+    .get("CHROMIUM_NOSANDBOX")
+    .map(_ == "1")
+    .getOrElse(config.getBoolean("chromium.nosandbox"))
+
   def screenShotResource: IO[Resource[IO, ScreenShot]] = {
     for {
       _ <- logger.debug(
@@ -65,11 +71,6 @@ class GenerateMovie(
       )
     }
   }
-
-  val chromiumNoSandBox = sys.env
-    .get("CHROMIUM_NOSANDBOX")
-    .map(_ == "1")
-    .getOrElse(config.getBoolean("chromium.nosandbox"))
 
   def execute: IO[Unit] = {
     val xmlElem = xmlUtil.readXml(filePath)
@@ -192,9 +193,6 @@ class GenerateMovie(
 
   }
 
-  private def withColor(color: String) = (s: String) =>
-    s"${color.toString()}${s}${scala.io.AnsiColor.RESET}"
-
   private def prepareDefaultContext(elem: scala.xml.Elem): IO[Context] = {
     val voiceConfigMap = xmlUtil.extractVoiceConfigMap(elem)
     val characterConfigMap = xmlUtil.extractCharacterConfigMap(elem)
@@ -233,20 +231,6 @@ class GenerateMovie(
       }
     } yield (fs2.io.file.Path(path.toString()), len, Seq())
 
-  private def backgroundIndicator(
-      message: String
-  ): cats.effect.ResourceIO[IO[cats.effect.OutcomeIO[Unit]]] =
-    indicator(message).background
-
-  private def indicator(message: String): IO[Unit] =
-    piece(s"⢄ $message") *> piece(s"⠢ $message") *> piece(
-      s"⠑ $message"
-    ) *> piece(s"⡈ $message") foreverM
-
-  private def piece(s: String): IO[Unit] =
-    IO.sleep(100 milliseconds) *> IO.print(
-      s"\r${withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(s)}"
-    )
 
   private def generateSay(
       sayElem: domain.model.Say,
