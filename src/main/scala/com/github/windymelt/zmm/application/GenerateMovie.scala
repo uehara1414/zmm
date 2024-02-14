@@ -3,7 +3,14 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
-import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, HtmlBuilder, IndicatorHelper, WavGenerator, XmlUtil}
+import com.github.windymelt.zmm.application.movieGenaration.{
+  AudioQueryFetcher,
+  DictionaryApplier,
+  HtmlBuilder,
+  IndicatorHelper,
+  WavGenerator,
+  XmlUtil
+}
 import com.github.windymelt.zmm.domain.model.{Context, VoiceBackendConfig}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
@@ -43,7 +50,8 @@ class GenerateMovie(
       }
     ) // TODO: respect construct parameter
 
-  val voiceVoxUri = sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
+  val voiceVoxUri =
+    sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
 
   val chromiumCommand =
     sys.env.get("CHROMIUM_CMD").getOrElse(config.getString("chromium.command"))
@@ -65,7 +73,7 @@ class GenerateMovie(
         logLevel match {
           case "TRACE" => ChromeScreenShot.Verbose
           case "DEBUG" => ChromeScreenShot.Verbose
-          case _ => ChromeScreenShot.Quiet
+          case _       => ChromeScreenShot.Quiet
         },
         chromiumNoSandBox
       )
@@ -92,13 +100,8 @@ class GenerateMovie(
       voices <- {
         import cats.syntax.parallel._
         val saySeq = sayCtxPairs map {
-          case (s, ctx)
-              if ctx.spokenByCharacterId == Some(
-                "silent"
-              ) => // TODO: voiceconfigまで辿る
-            generateSilence(ctx)
-          case (s, ctx) =>
-            generateSay(s, voiceVox, ctx)
+          case (s, ctx) if ctx.spokenByCharacterId == Some("silent") => generateSilence(ctx)
+          case (s, ctx) => generateSay(s, voiceVox, ctx)
         }
         saySeq.parSequence
       }
@@ -201,7 +204,8 @@ class GenerateMovie(
     // 発音調整などに使う文字列辞書。今のところVOICEVOXの発音辞書に使っている
     // (word, pronounce, accent lower point)
     val dict = xmlUtil.extractPronounceDict(elem)
-    val codes: Map[String, (String, Option[String])] = xmlUtil.extractCodes(elem)
+    val codes: Map[String, (String, Option[String])] =
+      xmlUtil.extractCodes(elem)
     val maths = xmlUtil.extractMaths(elem)
 
     IO.pure(
@@ -230,7 +234,6 @@ class GenerateMovie(
         ffmpeg.generateSilentWav(path, len)
       }
     } yield (fs2.io.file.Path(path.toString()), len, Seq())
-
 
   private def generateSay(
       sayElem: domain.model.Say,
