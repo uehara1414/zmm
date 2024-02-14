@@ -44,6 +44,33 @@ class GenerateMovie(
 
   val voiceVoxUri = sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
 
+  val chromiumCommand =
+    sys.env.get("CHROMIUM_CMD").getOrElse(config.getString("chromium.command"))
+
+  def screenShotResource: IO[Resource[IO, ScreenShot]] = {
+    for {
+      _ <- logger.debug(
+        s"chromium command: $chromiumCommand, chromoumNoSandBox: $chromiumNoSandBox"
+      )
+      mu <- Mutex[IO]
+    } yield mu.lock.map { _ =>
+      new ChromeScreenShot(
+        chromiumCommand,
+        logLevel match {
+          case "TRACE" => ChromeScreenShot.Verbose
+          case "DEBUG" => ChromeScreenShot.Verbose
+          case _ => ChromeScreenShot.Quiet
+        },
+        chromiumNoSandBox
+      )
+    }
+  }
+
+  val chromiumNoSandBox = sys.env
+    .get("CHROMIUM_NOSANDBOX")
+    .map(_ == "1")
+    .getOrElse(config.getBoolean("chromium.nosandbox"))
+
   def execute: IO[Unit] = {
     val xmlElem = xmlUtil.readXml(filePath)
 
@@ -323,31 +350,4 @@ class GenerateMovie(
   private def buildHtmlFile(serif: String, ctx: Context): IO[String] = {
     htmlBuilder.build(serif, ctx)
   }
-
-  val chromiumCommand =
-    sys.env.get("CHROMIUM_CMD").getOrElse(config.getString("chromium.command"))
-
-  def screenShotResource: IO[Resource[IO, ScreenShot]] = {
-    for {
-      _ <- logger.debug(
-        s"chromium command: $chromiumCommand, chromoumNoSandBox: $chromiumNoSandBox"
-      )
-      mu <- Mutex[IO]
-    } yield mu.lock.map { _ =>
-      new ChromeScreenShot(
-        chromiumCommand,
-        logLevel match {
-          case "TRACE" => ChromeScreenShot.Verbose
-          case "DEBUG" => ChromeScreenShot.Verbose
-          case _       => ChromeScreenShot.Quiet
-        },
-        chromiumNoSandBox
-      )
-    }
-  }
-
-  val chromiumNoSandBox = sys.env
-    .get("CHROMIUM_NOSANDBOX")
-    .map(_ == "1")
-    .getOrElse(config.getBoolean("chromium.nosandbox"))
 }
