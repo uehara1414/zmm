@@ -27,7 +27,7 @@ class GenerateMovie(
   implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   private def dictionaryApplier = new DictionaryApplier()
   private def audioQueryFetcher = new AudioQueryFetcher()
-  private def xmlSanitizer = new XmlUtil()
+  private def xmlUtil = new XmlUtil()
   private def htmlBuilder = new HtmlBuilder()
   private def wavGenerator = new WavGenerator()
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
@@ -45,7 +45,7 @@ class GenerateMovie(
   val voiceVoxUri = sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
 
   def execute: IO[Unit] = {
-    val content = IO.delay(scala.xml.XML.loadFile(filePath))
+    val xmlElem = xmlUtil.readXml(filePath)
 
     for {
       _ <- logger.debug(s"generate($filePath, $outPathString)")
@@ -54,8 +54,8 @@ class GenerateMovie(
       _ <- logger.debug(
         s"""ffmpeg command: ${config.getString("ffmpeg.command")}"""
       )
-      x <- content
-      _ <- xmlSanitizer.sanitize(x)
+      x <- xmlElem
+      _ <- xmlUtil.sanitize(x)
       defaultCtx <- prepareDefaultContext(x)
       _ <- dictionaryApplier.execute(defaultCtx.dict)
       sayCtxPairs <- IO.pure(
@@ -169,67 +169,15 @@ class GenerateMovie(
     s"${color.toString()}${s}${scala.io.AnsiColor.RESET}"
 
   private def prepareDefaultContext(elem: scala.xml.Elem): IO[Context] = {
-    val voiceConfigList = elem \ "meta" \ "voiceconfig"
-    val voiceConfigMap: Map[String, VoiceBackendConfig] = voiceConfigList.map {
-      vc =>
-        vc \@ "backend" match {
-          case "voicevox" =>
-            val vvc = vc \ "voicevoxconfig"
-            val voiceVoxSpeakerId = vvc \@ "id"
-            (vc \@ "id", domain.model.VoiceVoxBackendConfig(voiceVoxSpeakerId))
-          case "silent" =>
-            (vc \@ "id", domain.model.SilentBackendConfig())
-          case _ => ??? // not implemented
-        }
-    }.toMap
-
-    val characterConfigList = elem \ "meta" \ "characterconfig"
-    val characterConfigMap = characterConfigList.map { cc =>
-      val name = cc \@ "name"
-      val defaultSerifColor = Some(cc \@ "serif-color").filterNot(_.isEmpty())
-      val tachieUrl = Some(cc \@ "tachie-url").filterNot(_.isEmpty())
-      name -> domain.model.CharacterConfig(
-        name,
-        cc \@ "voice-id",
-        defaultSerifColor,
-        tachieUrl
-      )
-    }.toMap
-
-    val defaultBackgroundImage =
-      (elem \ "meta" \ "assets" \ "backgroundImage")
-        .filter(_.attribute("id").map(_.text).contains("default"))
-        .headOption
-        .flatMap(_.attribute("url").headOption.map(_.text))
-
-    val defaultFont = (elem \ "meta" \ "font").headOption.map(_.text)
-
+    val voiceConfigMap = xmlUtil.extractVoiceConfigMap(elem)
+    val characterConfigMap = xmlUtil.extractCharacterConfigMap(elem)
+    val defaultBackgroundImage = xmlUtil.extractDefaultBackgroundImage(elem)
+    val defaultFont = xmlUtil.extractDefaultFont(elem)
     // 発音調整などに使う文字列辞書。今のところVOICEVOXの発音辞書に使っている
     // (word, pronounce, accent lower point)
-    val dict: Seq[(String, String, Int)] = util.Dict.dictFromNode(elem)
-
-    val codes: Map[String, (String, Option[String])] =
-      (elem \ "predef" \ "code")
-        .flatMap(es =>
-          es.map { e =>
-            val code = e.text.stripLeading()
-            val id = e \@ "id"
-            val lang = Some(e \@ "lang").filterNot(_.isEmpty())
-            id -> (code, lang)
-          }
-        )
-        .toMap
-
-    val maths: Map[String, String] = (elem \ "predef" \ "math")
-      .flatMap(es =>
-        es.map { e =>
-          val math = e.text.stripLeading()
-          val id = e \@ "id"
-
-          id -> math
-        }
-      )
-      .toMap
+    val dict = xmlUtil.extractPronounceDict(elem)
+    val codes: Map[String, (String, Option[String])] = xmlUtil.extractCodes(elem)
+    val maths = xmlUtil.extractMaths(elem)
 
     IO.pure(
       domain.model.Context(

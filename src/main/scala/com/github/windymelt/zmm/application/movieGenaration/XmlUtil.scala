@@ -1,6 +1,13 @@
 package com.github.windymelt.zmm.application.movieGenaration
 
 import cats.effect.IO
+import com.github.windymelt.zmm.domain.model.{
+  CharacterConfig,
+  VoiceBackendConfig
+}
+import com.github.windymelt.zmm.{domain, util}
+
+import scala.xml.Elem
 
 // とりあえずここにxml関連の処理を凝集させてみる。その後に責務を考える
 class XmlUtil {
@@ -12,5 +19,81 @@ class XmlUtil {
       throw new Exception("Invalid scenary XML") // TODO: 丁寧なエラーメッセージ
     }
     IO.unit
+  }
+
+  def readXml(filePath: String): IO[Elem] = {
+    IO.delay(scala.xml.XML.loadFile(filePath))
+  }
+
+  def extractVoiceConfigMap(elem: Elem): Map[String, VoiceBackendConfig] = {
+    val voiceConfigList = elem \ "meta" \ "voiceconfig"
+    voiceConfigList.map { vc =>
+      vc \@ "backend" match {
+        case "voicevox" =>
+          val vvc = vc \ "voicevoxconfig"
+          val voiceVoxSpeakerId = vvc \@ "id"
+          (vc \@ "id", domain.model.VoiceVoxBackendConfig(voiceVoxSpeakerId))
+        case "silent" =>
+          (vc \@ "id", domain.model.SilentBackendConfig())
+        case _ => ??? // not implemented
+      }
+    }.toMap
+  }
+
+  def extractCharacterConfigMap(elem: Elem): Map[String, CharacterConfig] = {
+    val characterConfigList = elem \ "meta" \ "characterconfig"
+
+    characterConfigList.map { cc =>
+      val name = cc \@ "name"
+      val defaultSerifColor = Some(cc \@ "serif-color").filterNot(_.isEmpty())
+      val tachieUrl = Some(cc \@ "tachie-url").filterNot(_.isEmpty())
+      name -> domain.model.CharacterConfig(
+        name,
+        cc \@ "voice-id",
+        defaultSerifColor,
+        tachieUrl
+      )
+    }.toMap
+  }
+
+  def extractDefaultBackgroundImage(elem: Elem): Option[String] = {
+    (elem \ "meta" \ "assets" \ "backgroundImage")
+      .filter(_.attribute("id").map(_.text).contains("default"))
+      .headOption
+      .flatMap(_.attribute("url").headOption.map(_.text))
+  }
+
+  def extractDefaultFont(elem: Elem): Option[String] = {
+    (elem \ "meta" \ "font").headOption.map(_.text)
+  }
+
+  def extractPronounceDict(elem: Elem): Seq[(String, String, Int)] = {
+    util.Dict.dictFromNode(elem)
+  }
+
+  def extractCodes(elem: Elem): Map[String, (String, Option[String])] = {
+    (elem \ "predef" \ "code")
+      .flatMap(es =>
+        es.map { e =>
+          val code = e.text.stripLeading()
+          val id = e \@ "id"
+          val lang = Some(e \@ "lang").filterNot(_.isEmpty())
+          id -> (code, lang)
+        }
+      )
+      .toMap
+  }
+
+  def extractMaths(elem: Elem): Map[String, String] = {
+    (elem \ "predef" \ "math")
+      .flatMap(es =>
+        es.map { e =>
+          val math = e.text.stripLeading()
+          val id = e \@ "id"
+
+          id -> math
+        }
+      )
+      .toMap
   }
 }
