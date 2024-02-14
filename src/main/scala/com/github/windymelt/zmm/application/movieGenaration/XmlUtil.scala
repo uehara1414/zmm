@@ -2,8 +2,9 @@ package com.github.windymelt.zmm.application.movieGenaration
 
 import cats.effect.IO
 
-class XmlSanitizer {
-  def check(elem: scala.xml.Elem): IO[Unit] = {
+// とりあえずここにxml関連の処理を凝集させてみる。その後に責務を考える
+class XmlUtil {
+  def sanitize(elem: scala.xml.Elem): IO[Unit] = {
     val checkTopElem = elem.label == "content"
     val ver = elem \@ "version" == "0.0"
 

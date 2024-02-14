@@ -3,7 +3,7 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
-import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, HtmlBuilder, WavGenerator, XmlSanitizer}
+import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, HtmlBuilder, WavGenerator, XmlUtil}
 import com.github.windymelt.zmm.domain.model.{Context, VoiceBackendConfig}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
@@ -27,7 +27,7 @@ class GenerateMovie(
   implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   private def dictionaryApplier = new DictionaryApplier()
   private def audioQueryFetcher = new AudioQueryFetcher()
-  private def xmlSanitizer = new XmlSanitizer()
+  private def xmlSanitizer = new XmlUtil()
   private def htmlBuilder = new HtmlBuilder()
   private def wavGenerator = new WavGenerator()
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
@@ -55,7 +55,7 @@ class GenerateMovie(
         s"""ffmpeg command: ${config.getString("ffmpeg.command")}"""
       )
       x <- content
-      _ <- xmlSanitizer.check(x)
+      _ <- xmlSanitizer.sanitize(x)
       defaultCtx <- prepareDefaultContext(x)
       _ <- dictionaryApplier.execute(defaultCtx.dict)
       sayCtxPairs <- IO.pure(
