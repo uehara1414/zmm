@@ -29,6 +29,8 @@ class GenerateMovie(
   private def audioQueryFetcher = new AudioQueryFetcher()
   private def xmlSanitizer = new XmlSanitizer()
   private def htmlBuilder = new HtmlBuilder()
+  private def wavGenerator = new WavGenerator()
+  def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
 
   def ffmpeg =
     new ConcreteFFmpeg(
@@ -307,8 +309,6 @@ class GenerateMovie(
     vowels <- voiceVox.getVowels(aq)
   } yield (path, dur, vowels)
 
-  private def wavGenerator = new WavGenerator()
-
   private def applyFilters(
       pairs: Seq[(domain.model.Say, Context)]
   ): Seq[(domain.model.Say, Context)] = {
@@ -402,6 +402,4 @@ class GenerateMovie(
     .get("CHROMIUM_NOSANDBOX")
     .map(_ == "1")
     .getOrElse(config.getBoolean("chromium.nosandbox"))
-
-  def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
 }
