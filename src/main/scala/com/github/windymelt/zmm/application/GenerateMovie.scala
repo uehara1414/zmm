@@ -100,7 +100,8 @@ class GenerateMovie(
       )
       voices <- {
         val saySeq = sayCtxPairs map {
-          case (s, ctx) if ctx.spokenByCharacterId.contains("silent") => wavGenerator.generateSilence(ctx)
+          case (s, ctx) if ctx.spokenByCharacterId.contains("silent") =>
+            wavGenerator.generateSilence(ctx)
           case (s, ctx) => wavGenerator.generateSay(s, ctx)
         }
         saySeq.parSequence
@@ -204,7 +205,8 @@ class GenerateMovie(
     // 発音調整などに使う文字列辞書。今のところVOICEVOXの発音辞書に使っている
     // (word, pronounce, accent lower point)
     val dict = xmlUtil.extractPronounceDict(elem)
-    val codes: Map[String, (String, Option[String])] = xmlUtil.extractCodes(elem)
+    val codes: Map[String, (String, Option[String])] =
+      xmlUtil.extractCodes(elem)
     val maths = xmlUtil.extractMaths(elem)
 
     IO.pure(
@@ -284,6 +286,14 @@ class GenerateMovie(
   }
 
   private def buildHtmlFile(serif: String, ctx: Context): IO[String] = {
-    htmlBuilder.build(serif, ctx)
+    htmlBuilder.build(serif, ctx, debuggingInfo(ctx))
+  }
+
+  private def debuggingInfo(ctx: Context): Seq[String] = {
+    Seq(
+      s"chromiumCommand: ${chromiumCommand}",
+      s"chromiumNoSandBox: ${chromiumNoSandBox}",
+      s"ctx.spokenVowels: ${ctx.spokenVowels}"
+    )
   }
 }
