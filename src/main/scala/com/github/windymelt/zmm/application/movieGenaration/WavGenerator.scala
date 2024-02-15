@@ -3,6 +3,8 @@ package com.github.windymelt.zmm.application.movieGenaration
 import cats.effect.IO
 import com.github.windymelt.zmm.domain.model.Context
 import com.github.windymelt.zmm.{domain, infrastructure, util}
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -17,6 +19,8 @@ class WavGenerator(logLevel: String = "INFO")
 
   // 指定してないなら3秒にしているが理由はない
   val defaultSilentLength = FiniteDuration(3, "second")
+  private def audioQueryFetcher = new AudioQueryFetcher()
+  implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   def ffmpeg =
     new ConcreteFFmpeg(
@@ -24,7 +28,7 @@ class WavGenerator(logLevel: String = "INFO")
       verbosity = logLevel match {
         case "DEBUG" => ConcreteFFmpeg.Verbose
         case "TRACE" => ConcreteFFmpeg.Verbose
-        case _ => ConcreteFFmpeg.Quiet
+        case _       => ConcreteFFmpeg.Quiet
       }
     ) // TODO: respect construct parameter
 
@@ -59,4 +63,31 @@ class WavGenerator(logLevel: String = "INFO")
 
     voiceConfig.asInstanceOf[domain.model.VoiceVoxBackendConfig].speakerId
   }
+
+  def generateSay(sayElem: domain.model.Say, ctx: Context): IO[
+    (fs2.io.file.Path,scala.concurrent.duration.FiniteDuration, domain.model.VowelSeqWithDuration)] =
+    for {
+      actualPronunciation <- IO.pure(
+        ctx.sic.getOrElse(sayElem.text)
+      ) // sicがない場合は元々のセリフを使う
+      // CLI出力まで持ってくるのがだるいので一旦コメントアウト
+      // aq <- backgroundIndicator("Building Audio Query").use { _ =>
+      aq <- audioQueryFetcher.fetch( // by属性がないことはないやろという想定でgetしている
+          actualPronunciation,
+          ctx.spokenByCharacterId.get,
+          ctx
+        )
+      _ <- logger.debug(aq.toString())
+      aq <- ctx.speed map (sp => voiceVox.controlSpeed(aq, sp)) getOrElse (IO
+        .pure(aq))
+      // CLI出力まで持ってくるのがだるいので一旦コメントアウト
+      // wav <- backgroundIndicator("Synthesizing wav").use { _ =>
+      wav <- execute(aq, ctx.spokenByCharacterId.get, ctx)
+      sha1Hex <- sha1HexCode(sayElem.text.getBytes())
+      // CLI出力まで持ってくるのがだるいので一旦コメントアウト
+      // path <- backgroundIndicator("Exporting .wav file").use { _ =>
+      path <- writeStreamToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
+      dur <- ffmpeg.getWavDuration(path.toString)
+      vowels <- voiceVox.getVowels(aq)
+    } yield (path, dur, vowels)
 }

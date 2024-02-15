@@ -101,7 +101,7 @@ class GenerateMovie(
         import cats.syntax.parallel._
         val saySeq = sayCtxPairs map {
           case (s, ctx) if ctx.spokenByCharacterId == Some("silent") => wavGenerator.generateSilence(ctx)
-          case (s, ctx) => generateSay(s, voiceVox, ctx)
+          case (s, ctx) => wavGenerator.generateSay(s, ctx)
         }
         saySeq.parSequence
       }
@@ -220,43 +220,6 @@ class GenerateMovie(
       )
     )
   }
-
-
-  private def generateSay(
-      sayElem: domain.model.Say,
-      voiceVox: VoiceVox,
-      ctx: Context
-  ): IO[
-    (
-        fs2.io.file.Path,
-        scala.concurrent.duration.FiniteDuration,
-        domain.model.VowelSeqWithDuration
-    )
-  ] = for {
-    actualPronunciation <- IO.pure(
-      ctx.sic.getOrElse(sayElem.text)
-    ) // sicがない場合は元々のセリフを使う
-    aq <- backgroundIndicator("Building Audio Query").use { _ =>
-      // by属性がないことはないやろという想定でgetしている
-      audioQueryFetcher.fetch(
-        actualPronunciation,
-        ctx.spokenByCharacterId.get,
-        ctx
-      )
-    }
-    _ <- logger.debug(aq.toString())
-    aq <- ctx.speed map (sp => voiceVox.controlSpeed(aq, sp)) getOrElse (IO
-      .pure(aq))
-    wav <- backgroundIndicator("Synthesizing wav").use { _ =>
-      wavGenerator.execute(aq, ctx.spokenByCharacterId.get, ctx)
-    }
-    sha1Hex <- sha1HexCode(sayElem.text.getBytes())
-    path <- backgroundIndicator("Exporting .wav file").use { _ =>
-      writeStreamToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
-    }
-    dur <- ffmpeg.getWavDuration(path.toString)
-    vowels <- voiceVox.getVowels(aq)
-  } yield (path, dur, vowels)
 
   private def applyFilters(
       pairs: Seq[(domain.model.Say, Context)]
