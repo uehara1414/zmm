@@ -204,8 +204,7 @@ class GenerateMovie(
     // 発音調整などに使う文字列辞書。今のところVOICEVOXの発音辞書に使っている
     // (word, pronounce, accent lower point)
     val dict = xmlUtil.extractPronounceDict(elem)
-    val codes: Map[String, (String, Option[String])] =
-      xmlUtil.extractCodes(elem)
+    val codes: Map[String, (String, Option[String])] = xmlUtil.extractCodes(elem)
     val maths = xmlUtil.extractMaths(elem)
 
     IO.pure(
