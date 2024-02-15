@@ -37,7 +37,7 @@ class GenerateMovie(
   private def audioQueryFetcher = new AudioQueryFetcher()
   private def xmlUtil = new XmlUtil()
   private def htmlBuilder = new HtmlBuilder()
-  private def wavGenerator = new WavGenerator()
+  private def wavGenerator = new WavGenerator(logLevel)
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
 
   def ffmpeg =
@@ -100,7 +100,7 @@ class GenerateMovie(
       voices <- {
         import cats.syntax.parallel._
         val saySeq = sayCtxPairs map {
-          case (s, ctx) if ctx.spokenByCharacterId == Some("silent") => generateSilence(ctx)
+          case (s, ctx) if ctx.spokenByCharacterId == Some("silent") => wavGenerator.generateSilence(ctx)
           case (s, ctx) => generateSay(s, voiceVox, ctx)
         }
         saySeq.parSequence
@@ -221,19 +221,6 @@ class GenerateMovie(
     )
   }
 
-  private def generateSilence(
-      ctx: Context
-  ): IO[(fs2.io.file.Path, FiniteDuration, domain.model.VowelSeqWithDuration)] =
-    for {
-      len <- IO.pure(
-        ctx.silentLength.getOrElse(FiniteDuration(3, "second"))
-      ) // 指定してないなら3秒にしているが理由はない
-      sha1Hex <- sha1HexCode(len.toString.getBytes)
-      path <- IO.pure(os.Path(s"${os.pwd}/artifacts/silence_$sha1Hex.wav"))
-      wav <- backgroundIndicator("Exporting silent .wav file").use { _ =>
-        ffmpeg.generateSilentWav(path, len)
-      }
-    } yield (fs2.io.file.Path(path.toString()), len, Seq())
 
   private def generateSay(
       sayElem: domain.model.Say,
