@@ -15,6 +15,7 @@ import com.github.windymelt.zmm.domain.model.{Context, VoiceBackendConfig}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import cats.syntax.parallel._
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.postfixOps
@@ -98,9 +99,8 @@ class GenerateMovie(
         Context.fromNode((x \ "dialogue").head, defaultCtx)
       )
       voices <- {
-        import cats.syntax.parallel._
         val saySeq = sayCtxPairs map {
-          case (s, ctx) if ctx.spokenByCharacterId == Some("silent") => wavGenerator.generateSilence(ctx)
+          case (s, ctx) if ctx.spokenByCharacterId.contains("silent") => wavGenerator.generateSilence(ctx)
           case (s, ctx) => wavGenerator.generateSay(s, ctx)
         }
         saySeq.parSequence
