@@ -1,4 +1,4 @@
-@(serif: String, ctx: com.github.windymelt.zmm.domain.model.Context)
+@(serif: String, ctx: com.github.windymelt.zmm.domain.model.Context, debuggingInfo: Seq[String])
 @font() = {@ctx.font.getOrElse("sans-serif")}
 <html><!-- TODO: embed SHA-256 of background image. -->
     <body style="@ctx.backgroundImageUrl.map(url => s"background-image: url('${com.github.windymelt.zmm.util.PathAlias.resolve(url, "template")}');" ).getOrElse("") background-size: 100%;">
@@ -47,5 +47,13 @@
                 </svg>
             </div> -->
         </div>
+<div style="color: white;">
+  <h2>デバッグ情報</h2>
+  <ul>
+    @for(p <- debuggingInfo) {
+    <li>@p</li>
+    }
+  </ul>
+</div>
     </body>
 </html>
