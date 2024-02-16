@@ -3,23 +3,13 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
-import com.github.windymelt.zmm.application.movieGenaration.{
-  AudioQueryFetcher,
-  DictionaryApplier,
-  HtmlBuilder,
-  IndicatorHelper,
-  WavGenerator,
-  XmlUtil
-}
-import com.github.windymelt.zmm.domain.model.{
-  Context,
-  GeneratedWav,
-  VoiceBackendConfig
-}
+import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, HtmlBuilder, IndicatorHelper, WavGenerator, XmlUtil}
+import com.github.windymelt.zmm.domain.model.{Context, GeneratedWav, Say, VoiceBackendConfig}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import cats.syntax.parallel.*
+import fs2.io.file.Path
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.postfixOps
@@ -134,6 +124,9 @@ class GenerateMovie(
       }
       // Contextにフィルタを適用する。母音情報を元に立ち絵を差し替えたコンテキストに分割したりする
       sayCtxPairs <- IO.pure(applyFilters(sayCtxPairs))
+      concatenatedSayWav <- ffmpeg.concatenateWavFiles(
+        generatedWavs.map(_.path.toString)
+      )
       // この時点でvideoとaudioとの間に依存がないので並列実行する
       // BUG: SI-5589 により、タプルにバインドできない
       va <- backgroundIndicator("Generating video and concatenated audio").use {
@@ -245,18 +238,15 @@ class GenerateMovie(
   }
 
   private def generateVideo(
-      sayCtxPairs: Seq[(domain.model.Say, Context)],
-      paths: Seq[fs2.io.file.Path]
+      sayCtxPairs: Seq[(Say, Context)],
+      sayWavPaths: Seq[fs2.io.file.Path]
   ): IO[os.Path] = {
     import cats.syntax.parallel._
 
-    val fileCheck: String => IO[Boolean] = p =>
-      IO(os.exists(os.pwd / os.RelPath(p)))
-
     // スクリーンショットは重いのでHTMLの内容をもとにキャッシュする(HTMLが同一内容なら同一のスクリーンショットになるという前提)
-    val shot: ScreenShot => (domain.model.Say, Context) => IO[os.Path] =
+    val shot: ScreenShot => (Say, Context) => IO[os.Path] =
       (ss: ScreenShot) =>
-        (s: domain.model.Say, ctx: Context) => {
+        (s: Say, ctx: Context) => {
           val htmlIO = buildHtmlFile(s.text, ctx)
           for {
             stream <- htmlIO.map(s =>
@@ -265,15 +255,15 @@ class GenerateMovie(
             html <- htmlIO
             sha1Hex <- sha1HexCode(html.getBytes())
             htmlPath = s"./artifacts/html/${sha1Hex}.html"
-            htmlFile <- fileCheck(htmlPath).ifM(
+            htmlFile <- checkfileExists(htmlPath).ifM(
               IO.pure(fs2.io.file.Path(htmlPath)),
               writeStreamToFile(stream, htmlPath)
             )
-            _ <- fileCheck(s"${htmlPath}.png").ifM(
+            _ <- checkfileExists(s"${htmlPath}.png").ifM(
               logger.debug(s"Cache HIT: ${htmlPath}.png"),
               logger.debug(s"Cache expired: ${htmlPath}.png")
             )
-            screenShotFile <- fileCheck(s"${htmlPath}.png").ifM(
+            screenShotFile <- checkfileExists(s"${htmlPath}.png").ifM(
               IO.pure(
                 os.pwd / os.RelPath(s"${htmlPath}.png")
               ),
@@ -287,8 +277,13 @@ class GenerateMovie(
     for {
       ss <- screenShotResource
       imgs <- for {
-        sceneImages <- sayCtxPairs.map { pair =>
-          ss.use { ss => shot(ss).tupled(pair) }
+        sceneImages: Seq[os.Path] <- sayCtxPairs.map { pair =>
+          ss.use {
+            ss => {
+              val (say, ctx) = pair
+              shot(ss).apply(say, ctx)
+            }
+          }
         }.parSequence
         concatenatedImages <- ffmpeg.concatenateImagesWithDuration(
           sceneImages.zip(sayCtxPairs.map(_._2.duration.get))
@@ -311,4 +306,8 @@ class GenerateMovie(
       s"ctx.tachieUrl: ${ctx.tachieUrl}"
     )
   }
+
+  private def checkfileExists: String => IO[Boolean] = p =>
+    IO(os.exists(os.pwd / os.RelPath(p)))
+
 }
