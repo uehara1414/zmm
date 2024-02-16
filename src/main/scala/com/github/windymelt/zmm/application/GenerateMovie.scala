@@ -3,8 +3,20 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
-import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, Html, IndicatorHelper, WavGenerator, XmlUtil}
-import com.github.windymelt.zmm.domain.model.{Context, GeneratedWav, Say, VoiceBackendConfig}
+import com.github.windymelt.zmm.application.movieGenaration.{
+  AudioQueryFetcher,
+  DictionaryApplier,
+  Html,
+  IndicatorHelper,
+  WavGenerator,
+  XmlUtil
+}
+import com.github.windymelt.zmm.domain.model.{
+  Context,
+  GeneratedWav,
+  Say,
+  VoiceBackendConfig
+}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -13,6 +25,7 @@ import fs2.io.file.Path
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.postfixOps
+import cats.syntax.parallel._
 
 class GenerateMovie(
     filePath: String,
@@ -236,51 +249,38 @@ class GenerateMovie(
     pairs.flatMap(composedFilters.second.run)
   }
 
+  private def screenShot(ss: ScreenShot, say: Say, ctx: Context): IO[os.Path] = {
+    for {
+      html <- Html.build(say.text, ctx)
+      // スクリーンショットは重いのでHTMLの内容をもとにキャッシュする(HTMLが同一内容なら同一のスクリーンショットになるという前提)
+      _ <- html.saveIfNotExist
+      screenShotFilePath <- html.screenShotExists.ifM(
+        IO.pure(os.pwd / os.RelPath(html.screenShotPath)),
+        ss.takeScreenShot(os.pwd / os.RelPath(html.path))
+      )
+    } yield screenShotFilePath
+  }
+
   private def generateVideo(
       sayCtxPairs: Seq[(Say, Context)],
       sayWavPaths: Seq[fs2.io.file.Path]
   ): IO[os.Path] = {
-    import cats.syntax.parallel._
-
-    // スクリーンショットは重いのでHTMLの内容をもとにキャッシュする(HTMLが同一内容なら同一のスクリーンショットになるという前提)
-    val shot: ScreenShot => (Say, Context) => IO[os.Path] =
-      (ss: ScreenShot) =>
-        (s: Say, ctx: Context) => {
-          for {
-            html <- Html.build(s.text, ctx)
-            _ <- html.saveIfNotExist
-            screenShotFilePath <- html.screenShotExists.ifM(
-              IO.pure(os.pwd / os.RelPath(html.screenShotPath)),
-              ss.takeScreenShot(os.pwd / os.RelPath(html.path.toString))
-            )
-          } yield screenShotFilePath
-        }
-
     for {
       ss <- screenShotResource
       imgs <- for {
         sceneImages: Seq[os.Path] <- sayCtxPairs.map { pair =>
-          ss.use {
-            ss => {
+          ss.use { ss =>
+            {
               val (say, ctx) = pair
-              shot(ss).apply(say, ctx)
+              screenShot(ss, say, ctx)
             }
           }
         }.parSequence
-        imagePathSayCtxPairs = sceneImages.zip(sayCtxPairs.map(_._2.duration.get))
-        concatenatedImages <- ffmpeg.concatenateImagesWithDuration(imagePathSayCtxPairs)
+        concatenatedImages <- ffmpeg.concatenateImagesWithDuration(
+          sceneImages.zip(sayCtxPairs.map(_._2.duration.get))
+        )
       } yield concatenatedImages
 
     } yield imgs
-  }
-
-  private def debuggingInfo(ctx: Context): Seq[String] = {
-    Seq(
-      s"chromiumCommand: ${chromiumCommand}",
-      s"chromiumNoSandBox: ${chromiumNoSandBox}",
-      s"ctx.spokenVowels: ${ctx.spokenVowels}",
-      s"ctx.currentVowel: ${ctx.currentVowel}",
-      s"ctx.tachieUrl: ${ctx.tachieUrl}"
-    )
   }
 }

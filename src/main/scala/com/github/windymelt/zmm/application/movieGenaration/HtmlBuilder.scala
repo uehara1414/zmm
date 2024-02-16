@@ -35,14 +35,21 @@ case class Html(body: String) extends UtilComponent {
 
 object Html {
   def build(serif: String, ctx: Context): IO[Html] = {
-    new HtmlBuilder().build(serif, ctx)
+    new HtmlBuilder().build(serif, ctx, debuggingInfo(ctx))
+  }
+
+
+  private def debuggingInfo(ctx: Context): Seq[String] = {
+    Seq(
+      s"ctx.spokenVowels: ${ctx.spokenVowels}",
+      s"ctx.currentVowel: ${ctx.currentVowel}",
+      s"ctx.tachieUrl: ${ctx.tachieUrl}"
+    )
   }
 }
 
 class HtmlBuilder {
-  def build(serif: String,
-            ctx: Context,
-            debuggingInfo: Seq[String] = Seq("文字列を動画中に表示します", "デバッグに使いましょう")): IO[Html] = {
+  def build(serif: String, ctx: Context, debuggingInfo: Seq[String]): IO[Html] = {
     IO {
       val htmlBody = html.sample(serif = serif, ctx = ctx, debuggingInfo = debuggingInfo).body
 
