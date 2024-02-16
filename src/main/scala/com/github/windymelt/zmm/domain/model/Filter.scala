@@ -26,7 +26,7 @@ object Filter {
           ctx.spokenByCharacterId match {
             case None => ctx
             case Some(cid) =>
-              val durModifiedCtx = ctx.copy(duration = Some(v._2))
+              val durModifiedCtx = ctx.copy(duration = Some(v._2), currentVowel = Some("vowel: %s".format(v._1)))
               if (shouldCloseMouth(v._1)) {
                 swapTachie(durModifiedCtx)
               } else {
@@ -40,7 +40,9 @@ object Filter {
         val size = spokenCtxs.size
         val acc = diff / size
 
-        spokenCtxs.map(c => c.copy(duration = c.duration.map(_ + acc)))
+        spokenCtxs.map(c =>
+          c.copy(duration = c.duration.map(_ + acc))
+        )
     }
   }
 

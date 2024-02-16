@@ -293,7 +293,9 @@ class GenerateMovie(
     Seq(
       s"chromiumCommand: ${chromiumCommand}",
       s"chromiumNoSandBox: ${chromiumNoSandBox}",
-      s"ctx.spokenVowels: ${ctx.spokenVowels}"
+      s"ctx.spokenVowels: ${ctx.spokenVowels}",
+      s"ctx.currentVowel: ${ctx.currentVowel}",
+      s"ctx.tachieUrl: ${ctx.tachieUrl}",
     )
   }
 }

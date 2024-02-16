@@ -43,7 +43,8 @@ final case class Context(
     maths: Map[String, String] = Map.empty, // id -> LaTeX string
     sic: Option[String] = None, // 代替読みを設定できる(数式などで使う)
     silentLength: Option[FiniteDuration] = None, // by=silentな場合に停止する時間
-    video: Option[String] = None // 背景に合成する動画
+    video: Option[String] = None, // 背景に合成する動画
+    currentVowel: Option[String] = None
     // TODO: BGM, fontColor, etc.
 ) {
   def atv = additionalTemplateVariables // alias for template
@@ -93,7 +94,8 @@ object Context {
         maths = x.maths |+| y.maths,
         sic = y.sic orElse x.sic,
         silentLength = y.silentLength <+> x.silentLength,
-        video = y.video <+> x.video
+        video = y.video <+> x.video,
+        currentVowel = y.currentVowel <+> x.currentVowel
       )
     }
     def empty: Context = Context.empty
