@@ -15,18 +15,28 @@ object Tachie {
     val registeredTachies = mouthShapes.map {
       mouthShape => {
         val tachieUrl = buildTachieUrl(mouthShape, baseTachieUrl)
+        val existence = tachieUrlExists(tachieUrl)
 
-        val realPath = os.pwd / os.RelPath(util.PathAlias.resolve(tachieUrl, "ffmpeg"))
-        val fileExists: Boolean = os.exists(realPath)
-
-        Tachie(mouthShape, buildTachieUrl(mouthShape, baseTachieUrl), fileExists)
+        Tachie(mouthShape, buildTachieUrl(mouthShape, baseTachieUrl), existence)
       }
     }
 
     TachiePresets(registeredTachies)
   }
 
-  def buildTachieUrl(mouseShape: MouthShape, baseTachieUrl: String): String = {
+  def getTachieFromVowel(vowel: String, tachiePresets: TachiePresets): Tachie = {
+    mouthShapeByVowel.get(vowel) match {
+      case Some(mouseShape) => getTachie(mouseShape, tachiePresets)
+      case None => tachiePresets.tachies.find(_.mouthShape == MouthShape("")).get
+    }
+  }
+
+  private def tachieUrlExists(tachieUrl: String): Boolean = {
+    val realPath = os.pwd / os.RelPath(util.PathAlias.resolve(tachieUrl, "ffmpeg"))
+    os.exists(realPath)
+  }
+
+  private def buildTachieUrl(mouseShape: MouthShape, baseTachieUrl: String): String = {
     val ExtRe = """(.+)\.(.+)""".r.anchored
 
     val suffix = mouseShape match {
@@ -37,13 +47,6 @@ object Tachie {
     baseTachieUrl match {
       case url @ ExtRe(file: String, ext: String) => s"${file}${suffix}.$ext"
       case _ => ???
-    }
-  }
-
-  def getTachieFromVowel(vowel: String, tachiePresets: TachiePresets): Tachie = {
-    mouthShapeByVowel.get(vowel) match {
-      case Some(mouseShape) => getTachie(mouseShape, tachiePresets)
-      case None => tachiePresets.tachies.find(_.mouthShape == MouthShape("")).get
     }
   }
 
