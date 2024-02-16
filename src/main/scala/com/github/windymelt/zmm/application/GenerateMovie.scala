@@ -96,7 +96,7 @@ class GenerateMovie(
       voices <- {
         val saySeq = sayCtxPairs map {
           (s, ctx) =>
-            if (ctx.spokenByCharacterId.contains("silent")) wavGenerator.generateSilence(ctx)
+            if (ctx.isSilent) wavGenerator.generateSilence(ctx)
             else wavGenerator.generateSay(s, ctx)
         }
         saySeq.parSequence
@@ -105,13 +105,14 @@ class GenerateMovie(
       sayCtxPairs <- IO.pure {
         val pairs = sayCtxPairs zip voices
         pairs map {
-          case ((say, context), GeneratedWav(_, dur, Seq())) =>
-            (say, context.copy(duration = Some(dur)))
-          case ((say, context), GeneratedWav(_, dur, vowels)) =>
-            (
-              say,
-              context.copy(spokenVowels = Some(vowels), duration = Some(dur))
+          (sayCtxPair, wav) => {
+            val say = sayCtxPair._1
+            val ctx = sayCtxPair._2
+
+            if (wav.isSilent) (say, ctx.copy(duration = Some(wav.duration)))
+            else (say, ctx.copy(spokenVowels = Some(wav.vowelSeqWithDuration), duration = Some(wav.duration))
             )
+          }
         }
       }
       // Contextにフィルタを適用する。母音情報を元に立ち絵を差し替えたコンテキストに分割したりする

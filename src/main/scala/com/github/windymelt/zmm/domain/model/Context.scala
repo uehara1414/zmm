@@ -47,7 +47,9 @@ final case class Context(
     currentVowel: Option[String] = None
     // TODO: BGM, fontColor, etc.
 ) {
-  def atv = additionalTemplateVariables // alias for template
+  def atv: Map[String, String] = additionalTemplateVariables // alias for template
+
+  def isSilent: Boolean = spokenByCharacterId.contains("silent")
 }
 
 // TODO: 後で動かす
