@@ -33,6 +33,12 @@ case class Html(body: String) extends UtilComponent {
     IO(os.exists(os.pwd / os.RelPath(p)))
 }
 
+object Html {
+  def build(serif: String, ctx: Context): IO[Html] = {
+    new HtmlBuilder().build(serif, ctx)
+  }
+}
+
 class HtmlBuilder {
   def build(serif: String,
             ctx: Context,

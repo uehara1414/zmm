@@ -3,7 +3,7 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
-import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, Html, HtmlBuilder, IndicatorHelper, WavGenerator, XmlUtil}
+import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, Html, IndicatorHelper, WavGenerator, XmlUtil}
 import com.github.windymelt.zmm.domain.model.{Context, GeneratedWav, Say, VoiceBackendConfig}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
@@ -31,7 +31,6 @@ class GenerateMovie(
   private def dictionaryApplier = new DictionaryApplier()
   private def audioQueryFetcher = new AudioQueryFetcher()
   private def xmlUtil = new XmlUtil()
-  private def htmlBuilder = new HtmlBuilder()
   private def wavGenerator = new WavGenerator(logLevel)
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
 
@@ -247,9 +246,8 @@ class GenerateMovie(
     val shot: ScreenShot => (Say, Context) => IO[os.Path] =
       (ss: ScreenShot) =>
         (s: Say, ctx: Context) => {
-          val htmlIO = buildHtmlFile(s.text, ctx)
           for {
-            html <- htmlIO
+            html <- Html.build(s.text, ctx)
             _ <- html.saveIfNotExist
             screenShotFilePath <- html.screenShotExists.ifM(
               IO.pure(os.pwd / os.RelPath(html.screenShotPath)),
@@ -276,10 +274,6 @@ class GenerateMovie(
     } yield imgs
   }
 
-  private def buildHtmlFile(serif: String, ctx: Context): IO[Html] = {
-    htmlBuilder.build(serif, ctx, debuggingInfo(ctx))
-  }
-
   private def debuggingInfo(ctx: Context): Seq[String] = {
     Seq(
       s"chromiumCommand: ${chromiumCommand}",
@@ -289,8 +283,4 @@ class GenerateMovie(
       s"ctx.tachieUrl: ${ctx.tachieUrl}"
     )
   }
-
-  private def checkfileExists: String => IO[Boolean] = p =>
-    IO(os.exists(os.pwd / os.RelPath(p)))
-
 }
