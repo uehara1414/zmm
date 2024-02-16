@@ -15,7 +15,7 @@ sealed trait ZmmOption
   * @param target
   */
 final case class ShowCommand(target: String)
-    extends ZmmOption // 今のところvoicevoxしか入らない
+    extends ZmmOption
 /** 動画生成を行うモード。
   *
   * @param targetFile
@@ -52,7 +52,7 @@ object CliOptions {
   private val showCommand =
     Opts.subcommand(name = "show", help = "Prints information.")(
       Opts
-        .argument[String]("voicevox | hogehoge")
+        .argument[String]("voicevox | hogehoge | tachie")
         .map(ShowCommand.apply)
     )
 

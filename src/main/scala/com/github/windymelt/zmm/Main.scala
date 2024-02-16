@@ -2,7 +2,13 @@ package com.github.windymelt.zmm
 
 import cats.effect.ExitCode
 import cats.effect.IO
-import com.github.windymelt.zmm.application.{CoeiroInkStatus, GenerateMovie, ShowVersion, VoiceVoxStatus}
+import com.github.windymelt.zmm.application.{
+  CoeiroInkStatus,
+  GenerateMovie,
+  ShowVersion,
+  TachieStatus,
+  VoiceVoxStatus
+}
 import com.monovore.decline.Opts
 import com.monovore.decline.effect.CommandIOApp
 
@@ -20,10 +26,12 @@ object Main
       case VersionFlag() => showVersion.execute() >> IO.pure(ExitCode.Success)
       case ShowCommand(target) =>
         val voiceVoxStatus = new VoiceVoxStatus
+        val tachieStatus = new TachieStatus
         target match {
           case "voicevox" =>
             voiceVoxStatus.showVoiceVoxSpeakers() >> IO.pure(ExitCode.Success)
           case "coeiroink" => hoge.show() >> IO.pure(ExitCode.Success)
+          case "tachie"    => tachieStatus.execute() >> IO.pure(ExitCode.Success)
           case _ =>
             IO.println(
               "subcommand [show] only accepts 'voicevox'. try `show voicevox`"
@@ -39,7 +47,11 @@ object Main
         val logLevel = environmentalLogLevel.getOrElse(optionalLogLevel)
         setLogLevel(logLevel)
 
-        val generator = new GenerateMovie(file.target.toString, out.toAbsolutePath.toString, logLevel)
+        val generator = new GenerateMovie(
+          file.target.toString,
+          out.toAbsolutePath.toString,
+          logLevel
+        )
 
         generator.execute >>
           IO.pure(ExitCode.Success)
