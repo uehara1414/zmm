@@ -102,9 +102,9 @@ class GenerateMovie(
       // dialogue要素から取得したセリフを元に音声ファイルを作成する
       voices <- {
         val saySeq = sayCtxPairs map {
-          case (s, ctx) if ctx.spokenByCharacterId.contains("silent") =>
-            wavGenerator.generateSilence(ctx)
-          case (s, ctx) => wavGenerator.generateSay(s, ctx)
+          (s, ctx) =>
+            if (ctx.spokenByCharacterId.contains("silent")) wavGenerator.generateSilence(ctx)
+            else wavGenerator.generateSay(s, ctx)
         }
         saySeq.parSequence
       }
