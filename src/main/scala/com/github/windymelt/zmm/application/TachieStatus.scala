@@ -1,9 +1,11 @@
 package com.github.windymelt.zmm.application
 
 import cats.effect.IO
+import com.github.windymelt.zmm.domain.model.Tachie
+
 
 class TachieStatus {
-  val tachieUrl = "../../assets/黄琴海月.png"
+  val tachieUrl = "@assets/黄琴海月.png"
 
   /** 立ち絵関連の状態を表示する
     * @return
@@ -11,15 +13,10 @@ class TachieStatus {
     */
   def execute(): IO[Unit] = {
     val ExtRe = """(.+)\.(.+)""".r.anchored
+    val preset = Tachie.prepare(tachieUrl)
 
-    val alternate = tachieUrl match {
-      case originalPath @ ExtRe(file: String, ext: String) =>
-        s"${file}!.$ext"
-      case _ => ???
-    }
-
-    IO.println(s"WIP 立ち絵を表示するよ") >>
-      IO.println(s"${tachieUrl}") >>
-      IO.println(s"${alternate}")
+    IO.println(s"黄琴海月の立ち絵の準備状況") >>
+      IO.println(s"${preset.tachies.mkString("\n")}") >>
+      IO.println(s"${os.pwd}")
   }
 }
