@@ -9,6 +9,7 @@ case class Html(body: String) extends UtilComponent {
     sha1HexCode(body.getBytes())
   }
 
+  // Notice: 参照先の画像などを差し替えてもhashは変わらないので画像が更新されないことがある
   def path: String = {
     s"./artifacts/html/${sha1HexCode}.html"
   }
@@ -18,6 +19,14 @@ case class Html(body: String) extends UtilComponent {
       IO.pure(fs2.io.file.Path(path)),
       writeStreamToFile(fs2.Stream[IO, Byte](body.getBytes().toSeq: _*), path)
     )
+  }
+
+  def screenShotPath: String = {
+    s"${path}.png"
+  }
+
+  def screenShotExists: IO[Boolean] = {
+    checkfileExists(screenShotPath)
   }
 
   private def checkfileExists: String => IO[Boolean] = p =>

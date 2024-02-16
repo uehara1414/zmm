@@ -251,19 +251,11 @@ class GenerateMovie(
           for {
             html <- htmlIO
             _ <- html.saveIfNotExist
-            _ <- checkfileExists(s"${html.path}.png").ifM(
-              logger.debug(s"Cache HIT: ${html.path}.png"),
-              logger.debug(s"Cache expired: ${html.path}.png")
+            screenShotFilePath <- html.screenShotExists.ifM(
+              IO.pure(os.pwd / os.RelPath(html.screenShotPath)),
+              ss.takeScreenShot(os.pwd / os.RelPath(html.path.toString))
             )
-            screenShotFile <- checkfileExists(s"${html.path}.png").ifM(
-              IO.pure(
-                os.pwd / os.RelPath(s"${html.path}.png")
-              ),
-              ss.takeScreenShot(
-                os.pwd / os.RelPath(html.path.toString)
-              )
-            )
-          } yield screenShotFile
+          } yield screenShotFilePath
         }
 
     for {
