@@ -3,7 +3,7 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
-import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, HtmlBuilder, IndicatorHelper, WavGenerator, XmlUtil}
+import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, Html, HtmlBuilder, IndicatorHelper, WavGenerator, XmlUtil}
 import com.github.windymelt.zmm.domain.model.{Context, GeneratedWav, Say, VoiceBackendConfig}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
@@ -249,26 +249,18 @@ class GenerateMovie(
         (s: Say, ctx: Context) => {
           val htmlIO = buildHtmlFile(s.text, ctx)
           for {
-            stream <- htmlIO.map(s =>
-              fs2.Stream[IO, Byte](s.getBytes().toSeq: _*)
-            )
             html <- htmlIO
-            sha1Hex <- sha1HexCode(html.getBytes())
-            htmlPath = s"./artifacts/html/${sha1Hex}.html"
-            htmlFile <- checkfileExists(htmlPath).ifM(
-              IO.pure(fs2.io.file.Path(htmlPath)),
-              writeStreamToFile(stream, htmlPath)
+            _ <- html.saveIfNotExist
+            _ <- checkfileExists(s"${html.path}.png").ifM(
+              logger.debug(s"Cache HIT: ${html.path}.png"),
+              logger.debug(s"Cache expired: ${html.path}.png")
             )
-            _ <- checkfileExists(s"${htmlPath}.png").ifM(
-              logger.debug(s"Cache HIT: ${htmlPath}.png"),
-              logger.debug(s"Cache expired: ${htmlPath}.png")
-            )
-            screenShotFile <- checkfileExists(s"${htmlPath}.png").ifM(
+            screenShotFile <- checkfileExists(s"${html.path}.png").ifM(
               IO.pure(
-                os.pwd / os.RelPath(s"${htmlPath}.png")
+                os.pwd / os.RelPath(s"${html.path}.png")
               ),
               ss.takeScreenShot(
-                os.pwd / os.RelPath(htmlFile.toString)
+                os.pwd / os.RelPath(html.path.toString)
               )
             )
           } yield screenShotFile
@@ -293,7 +285,7 @@ class GenerateMovie(
     } yield imgs
   }
 
-  private def buildHtmlFile(serif: String, ctx: Context): IO[String] = {
+  private def buildHtmlFile(serif: String, ctx: Context): IO[Html] = {
     htmlBuilder.build(serif, ctx, debuggingInfo(ctx))
   }
 
