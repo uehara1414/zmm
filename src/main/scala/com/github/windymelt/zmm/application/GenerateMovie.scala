@@ -3,8 +3,19 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
-import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, HtmlBuilder, IndicatorHelper, WavGenerator, XmlUtil}
-import com.github.windymelt.zmm.domain.model.{Context, GeneratedWav, VoiceBackendConfig}
+import com.github.windymelt.zmm.application.movieGenaration.{
+  AudioQueryFetcher,
+  DictionaryApplier,
+  HtmlBuilder,
+  IndicatorHelper,
+  WavGenerator,
+  XmlUtil
+}
+import com.github.windymelt.zmm.domain.model.{
+  Context,
+  GeneratedWav,
+  VoiceBackendConfig
+}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -93,25 +104,31 @@ class GenerateMovie(
         Context.fromNode((x \ "dialogue").head, defaultCtx)
       )
       // dialogue要素から取得したセリフを元に音声ファイルを作成する
-      voices <- {
-        val saySeq = sayCtxPairs map {
-          (s, ctx) =>
-            if (ctx.isSilent) wavGenerator.generateSilence(ctx)
-            else wavGenerator.generateSay(s, ctx)
+      generatedWavs <- {
+        val saySeq = sayCtxPairs map { (s, ctx) =>
+          if (ctx.isSilent) wavGenerator.generateSilence(ctx)
+          else wavGenerator.generateSay(s, ctx)
         }
         saySeq.parSequence
       }
       // 読み上げ長をContextに追加する。母音情報が得られた場合も追加する
       sayCtxPairs <- IO.pure {
-        val pairs = sayCtxPairs zip voices
-        pairs map {
-          (sayCtxPair, wav) => {
+        val pairs = sayCtxPairs zip generatedWavs
+        pairs map { (sayCtxPair, generatedWav) =>
+          {
             val say = sayCtxPair._1
             val ctx = sayCtxPair._2
 
-            if (wav.isSilent) (say, ctx.copy(duration = Some(wav.duration)))
-            else (say, ctx.copy(spokenVowels = Some(wav.vowelSeqWithDuration), duration = Some(wav.duration))
-            )
+            if (generatedWav.isSilent)
+              (say, ctx.copy(duration = Some(generatedWav.duration)))
+            else
+              (
+                say,
+                ctx.copy(
+                  spokenVowels = Some(generatedWav.vowelSeqWithDuration),
+                  duration = Some(generatedWav.duration)
+                )
+              )
           }
         }
       }
@@ -121,9 +138,9 @@ class GenerateMovie(
       // BUG: SI-5589 により、タプルにバインドできない
       va <- backgroundIndicator("Generating video and concatenated audio").use {
         _ =>
-          val paths = voices.map(_._1)
-          generateVideo(sayCtxPairs, paths) product ffmpeg
-            .concatenateWavFiles(paths.map(_.toString))
+          val wavPaths = generatedWavs.map(_.path)
+          generateVideo(sayCtxPairs, wavPaths) product ffmpeg
+            .concatenateWavFiles(wavPaths.map(_.toString))
       }
       (video, audio) = va
       zippedVideo <- backgroundIndicator("Zipping silent video and audio").use {
@@ -291,7 +308,7 @@ class GenerateMovie(
       s"chromiumNoSandBox: ${chromiumNoSandBox}",
       s"ctx.spokenVowels: ${ctx.spokenVowels}",
       s"ctx.currentVowel: ${ctx.currentVowel}",
-      s"ctx.tachieUrl: ${ctx.tachieUrl}",
+      s"ctx.tachieUrl: ${ctx.tachieUrl}"
     )
   }
 }
