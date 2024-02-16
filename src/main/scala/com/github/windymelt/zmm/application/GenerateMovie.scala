@@ -269,9 +269,8 @@ class GenerateMovie(
             }
           }
         }.parSequence
-        concatenatedImages <- ffmpeg.concatenateImagesWithDuration(
-          sceneImages.zip(sayCtxPairs.map(_._2.duration.get))
-        )
+        imagePathSayCtxPairs = sceneImages.zip(sayCtxPairs.map(_._2.duration.get))
+        concatenatedImages <- ffmpeg.concatenateImagesWithDuration(imagePathSayCtxPairs)
       } yield concatenatedImages
 
     } yield imgs
