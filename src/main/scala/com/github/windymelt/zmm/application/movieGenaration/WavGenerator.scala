@@ -1,7 +1,7 @@
 package com.github.windymelt.zmm.application.movieGenaration
 
 import cats.effect.IO
-import com.github.windymelt.zmm.domain.model.Context
+import com.github.windymelt.zmm.domain.model.{Context, GeneratedWav}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -43,9 +43,8 @@ class WavGenerator(logLevel: String = "INFO")
 
     voiceVox.synthesis(aq, speakerId)
   }
-  def generateSilence(
-      ctx: Context
-  ): IO[(fs2.io.file.Path, FiniteDuration, domain.model.VowelSeqWithDuration)] =
+
+  def generateSilence(ctx: Context): IO[GeneratedWav] =
     for {
       len <- IO.pure(
         ctx.silentLength.getOrElse(defaultSilentLength)
@@ -55,17 +54,9 @@ class WavGenerator(logLevel: String = "INFO")
       // CLI出力まで持ってくるのがだるいので一旦コメントアウト
       // wav <- backgroundIndicator("Exporting silent .wav file").use { _ =>
       wav <- ffmpeg.generateSilentWav(path, len)
-    } yield (fs2.io.file.Path(path.toString()), len, Seq())
+    } yield GeneratedWav(fs2.io.file.Path(path.toString()), len, Seq())
 
-  private def extractSpeakerId(character: String, ctx: Context): String = {
-    val characterConfig = ctx.characterConfigMap(character)
-    val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
-
-    voiceConfig.asInstanceOf[domain.model.VoiceVoxBackendConfig].speakerId
-  }
-
-  def generateSay(sayElem: domain.model.Say, ctx: Context): IO[
-    (fs2.io.file.Path,scala.concurrent.duration.FiniteDuration, domain.model.VowelSeqWithDuration)] =
+  def generateSay(sayElem: domain.model.Say, ctx: Context): IO[GeneratedWav] =
     for {
       actualPronunciation <- IO.pure(
         ctx.sic.getOrElse(sayElem.text)
@@ -89,5 +80,12 @@ class WavGenerator(logLevel: String = "INFO")
       path <- writeStreamToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
       dur <- ffmpeg.getWavDuration(path.toString)
       vowels <- voiceVox.getVowels(aq)
-    } yield (path, dur, vowels)
+    } yield GeneratedWav(path, dur, vowels)
+
+  private def extractSpeakerId(character: String, ctx: Context): String = {
+    val characterConfig = ctx.characterConfigMap(character)
+    val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
+
+    voiceConfig.asInstanceOf[domain.model.VoiceVoxBackendConfig].speakerId
+  }
 }

@@ -3,19 +3,12 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
-import com.github.windymelt.zmm.application.movieGenaration.{
-  AudioQueryFetcher,
-  DictionaryApplier,
-  HtmlBuilder,
-  IndicatorHelper,
-  WavGenerator,
-  XmlUtil
-}
-import com.github.windymelt.zmm.domain.model.{Context, VoiceBackendConfig}
+import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, HtmlBuilder, IndicatorHelper, WavGenerator, XmlUtil}
+import com.github.windymelt.zmm.domain.model.{Context, GeneratedWav, VoiceBackendConfig}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import cats.syntax.parallel._
+import cats.syntax.parallel.*
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.postfixOps
@@ -112,9 +105,9 @@ class GenerateMovie(
       sayCtxPairs <- IO.pure {
         val pairs = sayCtxPairs zip voices
         pairs map {
-          case ((say, context), (_, dur, Seq())) =>
+          case ((say, context), GeneratedWav(_, dur, Seq())) =>
             (say, context.copy(duration = Some(dur)))
-          case ((say, context), (_, dur, vowels)) =>
+          case ((say, context), GeneratedWav(_, dur, vowels)) =>
             (
               say,
               context.copy(spokenVowels = Some(vowels), duration = Some(dur))
