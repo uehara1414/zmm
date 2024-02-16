@@ -95,9 +95,11 @@ class GenerateMovie(
       _ <- xmlUtil.sanitize(x)
       defaultCtx <- prepareDefaultContext(x)
       _ <- dictionaryApplier.execute(defaultCtx.dict)
+      // dialogue要素から取得したセリフとコンテキストのペアを作成する
       sayCtxPairs <- IO.pure(
         Context.fromNode((x \ "dialogue").head, defaultCtx)
       )
+      // dialogue要素から取得したセリフを元に音声ファイルを作成する
       voices <- {
         val saySeq = sayCtxPairs map {
           case (s, ctx) if ctx.spokenByCharacterId.contains("silent") =>
@@ -119,7 +121,7 @@ class GenerateMovie(
             )
         }
       }
-      // Contextにフィルタを適用する
+      // Contextにフィルタを適用する。母音情報を元に立ち絵を差し替えたコンテキストに分割したりする
       sayCtxPairs <- IO.pure(applyFilters(sayCtxPairs))
       // この時点でvideoとaudioとの間に依存がないので並列実行する
       // BUG: SI-5589 により、タプルにバインドできない
