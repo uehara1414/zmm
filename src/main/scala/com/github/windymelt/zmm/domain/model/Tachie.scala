@@ -64,7 +64,6 @@ object Tachie {
     val tachie = tachiePresets.tachies.find(t => {t.mouthShape == mouseShape && t.eyeState == eyeState}).get
     tachie match {
       case Tachie(_, _, _, true) => tachie
-      // todo: 瞬き画像のfallbackもする
       case Tachie(_, _, _, false) => {
         val fallbackMouthShape = fallbackRules.get(tachie.mouthShape)
         val fallbackEyeState = EyeState.fallbackRules.get(eyeState)
