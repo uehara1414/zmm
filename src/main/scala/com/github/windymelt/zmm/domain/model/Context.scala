@@ -44,12 +44,20 @@ final case class Context(
     sic: Option[String] = None, // 代替読みを設定できる(数式などで使う)
     silentLength: Option[FiniteDuration] = None, // by=silentな場合に停止する時間
     video: Option[String] = None, // 背景に合成する動画
-    currentVowel: Option[String] = None
+    currentVowel: Option[String] = None,
+    eyeState: EyeState = EyeState.default
     // TODO: BGM, fontColor, etc.
 ) {
-  def atv: Map[String, String] = additionalTemplateVariables // alias for template
+  def atv: Map[String, String] =
+    additionalTemplateVariables // alias for template
 
   def isSilent: Boolean = spokenByCharacterId.contains("silent")
+  def currentSpeakingCharacter: Option[CharacterConfig] = {
+    spokenByCharacterId match {
+      case Some(id) => characterConfigMap.get(id)
+      case None     => None
+    }
+  }
 }
 
 // TODO: 後で動かす
@@ -112,7 +120,9 @@ object Context {
       Seq.empty // 空行やただの入れ子でコンテキストが生成されないようにする
     case Text(t) => Seq(Say(t) -> currentContext)
     case e: Elem =>
-      e.child.flatMap(c => sayContextPairFromNode(c, currentContext |+| extract(e)))
+      e.child.flatMap(c =>
+        sayContextPairFromNode(c, currentContext |+| extract(e))
+      )
   }
 
   private def firstAttrTextOf(e: Elem, a: String): Option[String] =

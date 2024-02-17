@@ -43,7 +43,9 @@ object Html {
     Seq(
       s"ctx.spokenVowels: ${ctx.spokenVowels}",
       s"ctx.currentVowel: ${ctx.currentVowel}",
-      s"ctx.tachieUrl: ${ctx.tachieUrl}"
+      s"ctx.tachieUrl: ${ctx.tachieUrl}",
+      s"ctx.currentSpeakingCharacter: ${ctx.currentSpeakingCharacter}",
+      s"ctx.eyeState: ${ctx.eyeState}",
     )
   }
 }

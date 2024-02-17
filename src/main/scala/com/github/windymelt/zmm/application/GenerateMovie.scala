@@ -242,9 +242,12 @@ class GenerateMovie(
       pairs: Seq[(domain.model.Say, Context)]
   ): Seq[(domain.model.Say, Context)] = {
     // フィルタが増えたら合成して伸ばす
-    val composedFilters = domain.model.Filter.talkingMouthFilter
     // Arrow.secondを使うとタプルの右側だけflatMapし、左側を補完させることができる
-    pairs.flatMap(composedFilters.second.run)
+    val composedFilters = domain.model.Filter.talkingMouthFilter
+    val eyeTransitionFilter = domain.model.Filter.eyeTransitionFilter
+    pairs
+      .flatMap(composedFilters.second.run)
+      .flatMap(eyeTransitionFilter.second.run)
   }
 
   private def screenShot(ss: ScreenShot, say: Say, ctx: Context): IO[os.Path] = {
