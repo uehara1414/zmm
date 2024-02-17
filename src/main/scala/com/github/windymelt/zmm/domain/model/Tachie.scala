@@ -3,31 +3,32 @@ package com.github.windymelt.zmm.domain.model
 import com.github.windymelt.zmm.domain.model.MouthShape.fallbackRules
 import com.github.windymelt.zmm.util
 
-case class Tachie(mouthShape: MouthShape, tachieUrl: String, available: Boolean)
+case class Tachie(mouthShape: MouthShape, eyeState: EyeState, tachieUrl: String, available: Boolean)
 
 case class TachiePresets(tachies: Seq[Tachie])
 
 object Tachie {
   import MouthShape.mouthShapes
   import MouthShape.mouthShapeByVowel
+  import EyeState.eyeStates
 
   def prepare(baseTachieUrl: String): TachiePresets = {
-    val registeredTachies = mouthShapes.map {
-      mouthShape => {
-        val tachieUrl = buildTachieUrl(mouthShape, baseTachieUrl)
+    val registeredTachies = (for(mouseShape <- mouthShapes; eyeState <- eyeStates) yield(mouseShape, eyeState)).map {
+      (mouthShape, eyeState) => {
+        val tachieUrl = buildTachieUrl(mouthShape, eyeState, baseTachieUrl)
         val existence = tachieUrlExists(tachieUrl)
 
-        Tachie(mouthShape, buildTachieUrl(mouthShape, baseTachieUrl), existence)
+        Tachie(mouthShape, eyeState, buildTachieUrl(mouthShape, eyeState, baseTachieUrl), existence)
       }
     }
 
     TachiePresets(registeredTachies)
   }
 
-  def getTachieFromVowel(vowel: String, tachiePresets: TachiePresets): Tachie = {
+  def getTachieFromVowel(vowel: String, eyeState: EyeState, tachiePresets: TachiePresets): Tachie = {
     mouthShapeByVowel.get(vowel) match {
-      case Some(mouseShape) => getTachie(mouseShape, tachiePresets)
-      case None => tachiePresets.tachies.find(_.mouthShape == MouthShape("")).get
+      case Some(mouthShape) => getTachie(mouthShape, eyeState, tachiePresets)
+      case None => tachiePresets.tachies.find(_.mouthShape == MouthShape("") && eyeState == EyeState.default).get
     }
   }
 
@@ -36,13 +37,20 @@ object Tachie {
     os.exists(realPath)
   }
 
-  private def buildTachieUrl(mouseShape: MouthShape, baseTachieUrl: String): String = {
+  private def buildTachieUrl(mouseShape: MouthShape, eyeState: EyeState, baseTachieUrl: String): String = {
     val ExtRe = """(.+)\.(.+)""".r.anchored
 
-    val suffix = mouseShape match {
+    val mouseShapeSuffix = mouseShape match {
       case MouthShape("") => ""
       case MouthShape(_) => s"_${mouseShape.shape}"
     }
+
+    val eyeStateSuffix = eyeState match {
+      case EyeState(OpenState.Open) => ""
+      case EyeState(OpenState.Close) => "_close"
+    }
+
+    val suffix = mouseShapeSuffix + eyeStateSuffix
 
     baseTachieUrl match {
       case url @ ExtRe(file: String, ext: String) => s"${file}${suffix}.$ext"
@@ -50,11 +58,12 @@ object Tachie {
     }
   }
 
-  private def getTachie(mouseShape: MouthShape, tachiePresets: TachiePresets): Tachie = {
-    val tachie = tachiePresets.tachies.find(_.mouthShape == mouseShape).get
+  private def getTachie(mouseShape: MouthShape, eyeState: EyeState, tachiePresets: TachiePresets): Tachie = {
+    val tachie = tachiePresets.tachies.find(t => {t.mouthShape == mouseShape && t.eyeState == eyeState}).get
     tachie match {
-      case Tachie(_, _, true) => tachie
-      case Tachie(_, _, false) => getTachie(fallbackRules(tachie.mouthShape), tachiePresets)
+      case Tachie(_, _, _, true) => tachie
+      // todo: 瞬き画像のfallbackもする
+      case Tachie(_, _, _, false) => getTachie(fallbackRules(tachie.mouthShape), eyeState, tachiePresets)
     }
   }
 }

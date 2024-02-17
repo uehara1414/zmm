@@ -1,7 +1,7 @@
 package com.github.windymelt.zmm.application
 
 import cats.effect.IO
-import com.github.windymelt.zmm.domain.model.Tachie
+import com.github.windymelt.zmm.domain.model.{EyeState, MouthShape, Tachie}
 
 
 class TachieStatus {

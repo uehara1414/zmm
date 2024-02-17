@@ -29,6 +29,7 @@ object Filter {
                   Tachie
                     .getTachieFromVowel(
                       v._1,
+                      ctx.eyeState,
                       tachiePresetsByCharacterId(ctx.spokenByCharacterId.get)
                     )
                     .tachieUrl
@@ -48,14 +49,42 @@ object Filter {
 
   def eyeTransitionFilter: Filter[Seq] = Kleisli { (ctx: Context) =>
     {
+      val tachiePresetsByCharacterId =
+        ctx.characterConfigMap.view.mapValues(config =>
+          Tachie.prepare(config.tachieUrl.getOrElse(""))
+        )
+
       ctx.currentVowel match {
         case None => Seq(ctx)
         case Some(v) =>
           v match {
             // 母音が「う」の時に瞬きするようにしてみる。
             case "u" => Seq(
-              ctx.copy(eyeState = EyeState(openState = OpenState.Close), duration = Some(ctx.duration.get / 2)),
-              ctx.copy(eyeState = EyeState(openState = OpenState.Open), duration = Some(ctx.duration.get / 2)),
+              ctx.copy(eyeState = EyeState(openState = OpenState.Close),
+                duration = Some(ctx.duration.get / 2),
+                tachieUrl = Some(
+                  Tachie
+                    .getTachieFromVowel(
+                      v,
+                      EyeState(openState = OpenState.Close),
+                      tachiePresetsByCharacterId(ctx.spokenByCharacterId.get)
+                    )
+                    .tachieUrl
+                )
+              ),
+              ctx.copy(
+                eyeState = EyeState(openState = OpenState.Open),
+                duration = Some(ctx.duration.get / 2),
+                tachieUrl = Some(
+                  Tachie
+                    .getTachieFromVowel(
+                      v,
+                      EyeState(openState = OpenState.Open),
+                      tachiePresetsByCharacterId(ctx.spokenByCharacterId.get)
+                    )
+                    .tachieUrl
+                )
+              ),
             )
             case _   => Seq(ctx)
           }
