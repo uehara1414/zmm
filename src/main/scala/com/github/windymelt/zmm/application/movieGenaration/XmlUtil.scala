@@ -25,6 +25,10 @@ class XmlUtil {
     IO.delay(scala.xml.XML.loadFile(filePath))
   }
 
+  def extractDialogElements(elem: Elem): scala.xml.Node = {
+    (elem \ "dialogue").head
+  }
+
   def extractVoiceConfigMap(elem: Elem): Map[String, VoiceBackendConfig] = {
     val voiceConfigList = elem \ "meta" \ "voiceconfig"
     voiceConfigList.map { vc =>

@@ -103,7 +103,7 @@ object Context {
     def empty: Context = Context.empty
   }
 
-  def fromNode(
+  def sayContextPairFromNode(
       dialogueElem: scala.xml.Node,
       currentContext: Context = Context.empty
   ): Seq[(Say, Context)] = dialogueElem match {
@@ -112,7 +112,7 @@ object Context {
       Seq.empty // 空行やただの入れ子でコンテキストが生成されないようにする
     case Text(t) => Seq(Say(t) -> currentContext)
     case e: Elem =>
-      e.child.flatMap(c => fromNode(c, currentContext |+| extract(e)))
+      e.child.flatMap(c => sayContextPairFromNode(c, currentContext |+| extract(e)))
   }
 
   private def firstAttrTextOf(e: Elem, a: String): Option[String] =

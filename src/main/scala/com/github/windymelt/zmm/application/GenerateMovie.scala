@@ -102,9 +102,7 @@ class GenerateMovie(
       defaultCtx <- prepareDefaultContext(x)
       _ <- dictionaryApplier.execute(defaultCtx.dict)
       // dialogue要素から取得したセリフとコンテキストのペアを作成する
-      sayCtxPairs <- IO.pure(
-        Context.fromNode((x \ "dialogue").head, defaultCtx)
-      )
+      sayCtxPairs <- IO.pure { Context.sayContextPairFromNode(xmlUtil.extractDialogElements(x), defaultCtx) }
       // dialogue要素から取得したセリフを元に音声ファイルを作成する
       generatedWavs <- {
         val saySeq = sayCtxPairs map { (s, ctx) =>

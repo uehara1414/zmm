@@ -42,12 +42,12 @@ class ContextSpec extends AnyFlatSpec with Matchers {
   import scala.xml._
   "Context.fromNode" should "extract say=node pair from empty elems" in {
     val e = <dialogue />
-    Context.fromNode(e) shouldBe empty
+    Context.sayContextPairFromNode(e) shouldBe empty
   }
 
   it should "extract say=node pair from one say" in {
     val e = <dialogue><say>こんにちは</say></dialogue>
-    val c = Context.fromNode(e)
+    val c = Context.sayContextPairFromNode(e)
     c should have size (1)
     c.head._1.text shouldBe "こんにちは"
     c.head._2.voiceConfigMap shouldBe empty
@@ -57,14 +57,14 @@ class ContextSpec extends AnyFlatSpec with Matchers {
 
   it should "split say by empty p tag" in {
     val e = <dialogue><say motif="motif0">Hello<p/>world</say></dialogue>
-    val c = Context.fromNode(e)
+    val c = Context.sayContextPairFromNode(e)
     c should have size (2)
     c(0)._1.text shouldBe "Hello"
     c(1)._1.text shouldBe "world"
 
     val e0 =
       <dialogue><say motif="motif0">Hello</say><say motif="motif0">world</say></dialogue>
-    val c0 = Context.fromNode(e0)
+    val c0 = Context.sayContextPairFromNode(e0)
 
     c shouldEqual c0
   }
@@ -83,7 +83,7 @@ class ContextSpec extends AnyFlatSpec with Matchers {
         </scene>
      </dialogue>
 
-    val cs = Context.fromNode(e)
+    val cs = Context.sayContextPairFromNode(e)
     cs should have size (3)
     cs.map(_._1.text) shouldBe Seq(
       "こんにちはなのだ",
