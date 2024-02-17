@@ -3,6 +3,8 @@ package com.github.windymelt.zmm.domain.model
 import com.github.windymelt.zmm.domain.model.MouthShape.fallbackRules
 import com.github.windymelt.zmm.util
 
+import java.awt.MouseInfo
+
 case class Tachie(mouthShape: MouthShape, eyeState: EyeState, tachieUrl: String, available: Boolean)
 
 case class TachiePresets(tachies: Seq[Tachie])
@@ -63,7 +65,16 @@ object Tachie {
     tachie match {
       case Tachie(_, _, _, true) => tachie
       // todo: 瞬き画像のfallbackもする
-      case Tachie(_, _, _, false) => getTachie(fallbackRules(tachie.mouthShape), eyeState, tachiePresets)
+      case Tachie(_, _, _, false) => {
+        val fallbackMouthShape = fallbackRules.get(tachie.mouthShape)
+        val fallbackEyeState = EyeState.fallbackRules.get(eyeState)
+
+        (fallbackMouthShape, fallbackEyeState) match {
+          case (_, Some(_)) => getTachie(tachie.mouthShape, fallbackEyeState.get, tachiePresets)
+          case (Some(_), _) => getTachie(fallbackMouthShape.get, eyeState, tachiePresets)
+          case (_, _) => ???
+        }
+      }
     }
   }
 }
