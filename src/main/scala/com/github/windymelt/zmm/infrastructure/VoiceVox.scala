@@ -1,6 +1,8 @@
 package com.github.windymelt.zmm
 package infrastructure
 
+import com.github.windymelt.zmm.domain.model.speech.AudioQueryParser
+
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 
@@ -78,11 +80,15 @@ trait VoiceVoxComponent {
       }
 
     def controlSpeed(aq: AudioQuery, speed: String): IO[AudioQuery] = {
+      import io.circe.generic.auto._
       import io.circe.syntax._
-      // TODO: .getやめて失敗できるようにする
-      IO.pure(
-        aq.hcursor.downField("speedScale").withFocus(_ => speed.asJson).top.get
-      )
+
+      AudioQueryParser.parseJson(aq.toString) match {
+        case Some(speechParameters) => IO.pure {
+          speechParameters.copy(speedScale = speed.toDouble).asJson
+        }
+        case None => throw new IllegalArgumentException("Invalid AudioQuery")
+      }
     }
 
     def registerDict(
