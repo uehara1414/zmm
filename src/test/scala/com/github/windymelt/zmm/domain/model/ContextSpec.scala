@@ -8,16 +8,19 @@ class ContextSpec extends AnyFlatSpec with Matchers {
   // Verify that Context is a Monoid
   "Context" should "satisfy associative law" in {
     val x = Context(
+      Map.empty,
       Map("zundamon" -> VoiceVoxBackendConfig("3")),
       Map("z" -> CharacterConfig("z", "zundamon")),
       Some("https://example.com/bg1.png")
     )
     val y = Context(
+      Map.empty,
       Map("metan" -> VoiceVoxBackendConfig("2")),
       Map("m" -> CharacterConfig("m", "metan")),
       Some("https://example.com/bg2.png")
     )
     val z = Context(
+      Map.empty,
       Map("tsumugi" -> VoiceVoxBackendConfig("8")),
       Map("t" -> CharacterConfig("t", "tsumugi")),
       None
@@ -29,6 +32,7 @@ class ContextSpec extends AnyFlatSpec with Matchers {
 
   it should "have identity element" in {
     val x = Context(
+      Map.empty,
       Map("zundamon" -> VoiceVoxBackendConfig("3")),
       Map("z" -> CharacterConfig("z", "zundamon"))
     )
