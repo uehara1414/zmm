@@ -25,6 +25,7 @@ final case class CharacterConfig(
  */
 
 final case class Context(
+    tachiePresetsMap: Map[String, TachiePresets] = Map.empty,
     voiceConfigMap: Map[String, VoiceBackendConfig] = Map.empty,
     characterConfigMap: Map[String, CharacterConfig] = Map.empty,
     backgroundImageUrl: Option[String] = None,
@@ -34,7 +35,6 @@ final case class Context(
     speed: Option[String] = Some("1.0"),
     font: Option[String] = None,
     serifColor: Option[String] = None, // どう使うかはテンプレート依存
-    tachieUrl: Option[String] = None,
     dict: Seq[(String, String, Int)] = Seq.empty,
     additionalTemplateVariables: Map[String, String] = Map.empty,
     bgm: Option[String] = None,
@@ -58,6 +58,17 @@ final case class Context(
       case None     => None
     }
   }
+
+  def currentCharacterTachiePresets: Option[TachiePresets] = {
+    spokenByCharacterId match {
+      case Some(id) => tachiePresetsMap.get(id)
+      case None     => None
+    }
+  }
+
+  def tachieUrl: String = {
+    Tachie.getTachieFromVowel(currentVowel.get, eyeState, currentCharacterTachiePresets.get).tachieUrl
+  }
 }
 
 // TODO: 後で動かす
@@ -80,10 +91,8 @@ object Context {
         y.serifColor orElse x.serifColor orElse spokenByCharacterId
           .flatMap(characterConfigMap.get)
           .flatMap(_.serifColor)
-      val tachieUrl = y.tachieUrl orElse x.tachieUrl orElse spokenByCharacterId
-        .flatMap(characterConfigMap.get)
-        .flatMap(_.tachieUrl)
       Context(
+        tachiePresetsMap = x.tachiePresetsMap ++ y.tachiePresetsMap, // defaultから変化しない想定
         voiceConfigMap = x.voiceConfigMap ++ y.voiceConfigMap,
         characterConfigMap = characterConfigMap,
         backgroundImageUrl =
@@ -94,7 +103,6 @@ object Context {
         speed = y.speed orElse x.speed, // 後勝ち
         font = y.font orElse x.font, // 後勝ち
         serifColor = serifColor,
-        tachieUrl = tachieUrl,
         dict = y.dict |+| x.dict,
         additionalTemplateVariables =
           x.additionalTemplateVariables ++ y.additionalTemplateVariables,
@@ -105,7 +113,8 @@ object Context {
         sic = y.sic orElse x.sic,
         silentLength = y.silentLength <+> x.silentLength,
         video = y.video <+> x.video,
-        currentVowel = y.currentVowel <+> x.currentVowel
+        currentVowel = y.currentVowel,         
+        eyeState = y.eyeState
       )
     }
     def empty: Context = Context.empty
@@ -144,7 +153,6 @@ object Context {
       speed = firstAttrTextOf(e, "speed"),
       font = firstAttrTextOf(e, "font"),
       serifColor = firstAttrTextOf(e, "serif-color"),
-      tachieUrl = firstAttrTextOf(e, "tachie-url"),
       additionalTemplateVariables = atvs,
       bgm = firstAttrTextOf(e, "bgm"),
       sic = firstAttrTextOf(e, "sic"),
