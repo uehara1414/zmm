@@ -36,7 +36,7 @@ object MouthShape {
 
   val fallbackRules: Map[MouthShape, MouthShape] = Map(
     // 「あいうえお」のみへのフォールバック
-    MouthShape("cl") -> MouthShape("cl"),
+    MouthShape("cl") -> MouthShape("u"),
     MouthShape("n") -> default,
 
     // 母音がない場合のフォールバック
