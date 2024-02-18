@@ -3,6 +3,7 @@ package com.github.windymelt.zmm.domain.model.speech
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.parser._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import io.circe.generic.auto
 
 case class Mora(
                  text: String,
@@ -83,8 +84,8 @@ object AudioQueryParser {
                   Some(
                     Mora(
                       text.getOrElse(""),
-                      consonant.getOrElse(null),
-                      consonantLength.getOrElse(null),
+                      consonant.getOrElse(Option.empty[String]),
+                      consonantLength.getOrElse(Option.empty[Double]),
                       vowel.getOrElse("a"),
                       vowelLength.getOrElse(0.05),
                       pitch.getOrElse(5.5)
@@ -110,8 +111,8 @@ object AudioQueryParser {
                     // elseの値は適当。基本問題なく取れんじゃない？
                     Mora(
                       text.getOrElse(""),
-                      consonant.getOrElse(null),
-                      consonantLength.getOrElse(null),
+                      consonant.getOrElse(Option.empty[String]),
+                      consonantLength.getOrElse(Option.empty[Double]),
                       vowel.getOrElse("a"),
                       vowelLength.getOrElse(0.05),
                       pitch.getOrElse(5.5)
