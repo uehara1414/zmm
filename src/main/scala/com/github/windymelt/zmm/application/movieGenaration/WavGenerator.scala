@@ -79,8 +79,8 @@ class WavGenerator(logLevel: String = "INFO")
       // path <- backgroundIndicator("Exporting .wav file").use { _ =>
       path <- writeStreamToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
       dur <- ffmpeg.getWavDuration(path.toString)
-      vowels <- voiceVox.getVowels(speech)
-    } yield GeneratedWav(path, dur, vowels)
+      moras <- voiceVox.getVowels(speech)
+    } yield GeneratedWav(path, dur, moras)
 
   private def extractSpeakerId(character: String, ctx: Context): String = {
     val characterConfig = ctx.characterConfigMap(character)

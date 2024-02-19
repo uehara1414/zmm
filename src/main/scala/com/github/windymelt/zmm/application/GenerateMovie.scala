@@ -112,7 +112,7 @@ class GenerateMovie(
               (
                 say,
                 ctx.copy(
-                  spokenVowels = Some(generatedWav.vowelSeqWithDuration),
+                  spokenVowels = Some(generatedWav.moras.map(m => (m.vowel, m.finiteDuration))), // spokenVowelsもmorasに置き換えたいが影響範囲が大きいので今は諦める
                   duration = Some(generatedWav.duration)
                 )
               )

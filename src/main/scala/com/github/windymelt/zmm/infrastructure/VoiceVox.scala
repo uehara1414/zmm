@@ -3,7 +3,8 @@ package infrastructure
 
 import com.github.windymelt.zmm.domain.model.speech.{
   SpeechParametersParser,
-  SpeechParameters
+  SpeechParameters,
+  Mora
 }
 
 import scala.concurrent.duration.Duration
@@ -42,8 +43,8 @@ trait VoiceVoxComponent {
       c.expect[SpeakerInfo](req)
     }
     // TODO: localhost:50021決め打ちをやめる
-    def audioQuery(text: String, speaker: String): IO[SpeechParameters] = client.use {
-      c =>
+    def audioQuery(text: String, speaker: String): IO[SpeechParameters] =
+      client.use { c =>
         val uri = Uri
           .fromString(s"${voiceVoxUri}/audio_query")
           .map(
@@ -57,10 +58,16 @@ trait VoiceVoxComponent {
           uri = uri.fold(throw _, identity),
           headers = Headers("accept" -> "application/json")
         )
-        c.expect[Json](req).flatMap(json => IO.pure(SpeechParametersParser.parseJson(json.toString).get))
-    }
+        c.expect[Json](req)
+          .flatMap(json =>
+            IO.pure(SpeechParametersParser.parseJson(json.toString).get)
+          )
+      }
 
-    def synthesis(speech: SpeechParameters, speaker: String): IO[fs2.Stream[IO, Byte]] =
+    def synthesis(
+        speech: SpeechParameters,
+        speaker: String
+    ): IO[fs2.Stream[IO, Byte]] =
       client.use { c =>
         import io.circe.generic.auto._
         import io.circe.syntax._
@@ -81,7 +88,10 @@ trait VoiceVoxComponent {
         IO.pure(c.stream(req).flatMap(_.body))
       }
 
-    def controlSpeed(speech: SpeechParameters, speed: String): IO[SpeechParameters] = {
+    def controlSpeed(
+        speech: SpeechParameters,
+        speed: String
+    ): IO[SpeechParameters] = {
       IO.pure { speech.copy(speedScale = speed.toDouble) }
     }
 
@@ -113,12 +123,8 @@ trait VoiceVoxComponent {
       c.successful(req) *> IO.unit
     }
 
-    def getVowels(speech: SpeechParameters): IO[domain.model.VowelSeqWithDuration] =
-      IO.pure {
-        speech.durationAdjustedMoras.map {
-          m => (m.vowel, m.finiteDuration)
-        }
-      }
+    def getVowels(speech: SpeechParameters): IO[Seq[Mora]] =
+      IO.pure { speech.durationAdjustedMoras }
 
     private lazy val client = {
       import concurrent.duration._

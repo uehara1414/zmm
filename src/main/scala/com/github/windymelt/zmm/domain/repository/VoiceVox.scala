@@ -2,7 +2,7 @@ package com.github.windymelt.zmm
 package domain.repository
 
 import cats.effect.IO
-import com.github.windymelt.zmm.domain.model.speech.SpeechParameters
+import com.github.windymelt.zmm.domain.model.speech.{SpeechParameters, Mora}
 
 trait VoiceVoxComponent {
   type SpeakerInfo
@@ -16,6 +16,6 @@ trait VoiceVoxComponent {
     // misc.
     def controlSpeed(speech: SpeechParameters, speed: String): IO[SpeechParameters]
     def registerDict(word: String, pronounce: String, lowerPoint: Int): IO[Unit]
-    def getVowels(speech: SpeechParameters): IO[domain.model.VowelSeqWithDuration]
+    def getVowels(speech: SpeechParameters): IO[Seq[Mora]]
   }
 }
