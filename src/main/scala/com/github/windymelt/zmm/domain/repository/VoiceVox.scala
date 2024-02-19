@@ -2,6 +2,7 @@ package com.github.windymelt.zmm
 package domain.repository
 
 import cats.effect.IO
+import com.github.windymelt.zmm.domain.model.speech.SpeechParameters
 
 trait VoiceVoxComponent {
   type AudioQuery
@@ -11,11 +12,11 @@ trait VoiceVoxComponent {
   trait VoiceVox {
     // API
     def speakers(): IO[SpeakerInfo]
-    def audioQuery(text: String, speaker: String): IO[AudioQuery]
-    def synthesis(aq: AudioQuery, speaker: String): IO[fs2.Stream[IO, Byte]]
+    def audioQuery(text: String, speaker: String): IO[SpeechParameters]
+    def synthesis(aq: SpeechParameters, speaker: String): IO[fs2.Stream[IO, Byte]]
     // misc.
-    def controlSpeed(aq: AudioQuery, speed: String): IO[AudioQuery]
+    def controlSpeed(aq: SpeechParameters, speed: String): IO[SpeechParameters]
     def registerDict(word: String, pronounce: String, lowerPoint: Int): IO[Unit]
-    def getVowels(aq: AudioQuery): IO[domain.model.VowelSeqWithDuration]
+    def getVowels(aq: SpeechParameters): IO[domain.model.VowelSeqWithDuration]
   }
 }

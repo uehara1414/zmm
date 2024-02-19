@@ -1,6 +1,7 @@
 package com.github.windymelt.zmm.application.movieGenaration
 
 import cats.effect.IO
+import com.github.windymelt.zmm.domain.model.speech.SpeechParameters
 import com.github.windymelt.zmm.domain.model.{Context, GeneratedWav}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
@@ -35,9 +36,9 @@ class WavGenerator(logLevel: String = "INFO")
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
 
   def execute(
-      aq: AudioQuery,
-      character: String,
-      ctx: Context
+               aq: SpeechParameters,
+               character: String,
+               ctx: Context
   ): IO[fs2.Stream[IO, Byte]] = {
     val speakerId = extractSpeakerId(character, ctx)
 
@@ -63,14 +64,13 @@ class WavGenerator(logLevel: String = "INFO")
       ) // sicがない場合は元々のセリフを使う
       // CLI出力まで持ってくるのがだるいので一旦コメントアウト
       // aq <- backgroundIndicator("Building Audio Query").use { _ =>
-      aq <- audioQueryFetcher.fetch( // by属性がないことはないやろという想定でgetしている
+      speech <- audioQueryFetcher.fetch( // by属性がないことはないやろという想定でgetしている
           actualPronunciation,
           ctx.spokenByCharacterId.get,
           ctx
         )
-      _ <- logger.debug(aq.toString())
-      aq <- ctx.speed map (sp => voiceVox.controlSpeed(aq, sp)) getOrElse (IO
-        .pure(aq))
+      _ <- logger.debug(speech.toString())
+      aq <- ctx.speed map (sp => voiceVox.controlSpeed(speech, sp)) getOrElse (IO.pure(speech))
       // CLI出力まで持ってくるのがだるいので一旦コメントアウト
       // wav <- backgroundIndicator("Synthesizing wav").use { _ =>
       wav <- execute(aq, ctx.spokenByCharacterId.get, ctx)

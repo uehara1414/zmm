@@ -3,6 +3,7 @@ package com.github.windymelt.zmm.application.movieGenaration
 import cats.effect.IO
 import com.github.windymelt.zmm.domain.model.Context
 import com.github.windymelt.zmm.domain
+import com.github.windymelt.zmm.domain.model.speech.SpeechParameters
 import com.github.windymelt.zmm.{infrastructure, util}
 
 
@@ -15,7 +16,7 @@ class AudioQueryFetcher extends domain.repository.VoiceVoxComponent
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
 
   // Contextに依存したくないので外す。あとで。
-  def fetch(text: String, character: String, ctx: Context): IO[AudioQuery] = {
+  def fetch(text: String, character: String, ctx: Context): IO[SpeechParameters] = {
     val speakerId = extractSpeakerId(character, ctx)
 
     voiceVox.audioQuery(text, speakerId)
