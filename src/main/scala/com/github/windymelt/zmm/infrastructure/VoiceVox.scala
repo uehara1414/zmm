@@ -84,9 +84,10 @@ trait VoiceVoxComponent {
       import io.circe.syntax._
 
       AudioQueryParser.parseJson(aq.toString) match {
-        case Some(speechParameters) => IO.pure {
-          speechParameters.copy(speedScale = speed.toDouble).asJson
-        }
+        case Some(speechParameters) =>
+          IO.pure {
+            speechParameters.copy(speedScale = speed.toDouble).asJson
+          }
         case None => throw new IllegalArgumentException("Invalid AudioQuery")
       }
     }
@@ -121,62 +122,28 @@ trait VoiceVoxComponent {
 
     def getVowels(aq: AudioQuery): IO[domain.model.VowelSeqWithDuration] =
       IO.pure {
-        import io.circe.parser._
-        import io.circe.optics.JsonPath._
-        import io.circe.syntax._
-        import cats.data.{NonEmptySeq => NES}
-        import cats.implicits._
         // 簡単のために母音と子音まとめて時間に含めてしまう
 
         // 母音
         val vowels: Seq[String] = speechParameters(aq).vowels
-        val vowelDurs: Seq[Double] = speechParameters(aq).vowelDurs
-
-        // 子音はあったりなかったりするのでちょっと複雑
-        // 複数のOpticsの合成で値を取り出す
-        val moras =
-          root.accent_phrases.each.moras.each.json.getAll(aq)
-        val consonantDurs: Seq[Double] =
-          moras
-            .map(root.consonant_length.double.getOption)
-            .map(_.getOrElse(0.0))
-            .map {
-              case d if d.isNaN => 0.0
-              case d            => d
-            }
-
         // 無音期間
-        val accent_phrases = root.accent_phrases.each.json.getAll(aq)
-        val pausesDur: Seq[Double] = accent_phrases
-          .map(root.pause_mora.vowel_length.double.getOption)
-          .map(
-            _.getOrElse(0.0)
-          ) // vowel_lengthがNaNになることはない(required)のでisNanは調べなくてよい
+        val pausesDur = speechParameters(aq).pause_moras.map(_.duration)
 
-        // 2つのSeqをおなじ位置の要素同士足して1つのSeqにしたい。
-        // Seqをアプリカティブに足すとデカルト積のように全要素を足し合わせる巨大なSeqになってしまう。
-        // 同じ位置の要素同士を足すにはZipListを使う。
-        // ZipListはNonEmptyList(Seq)とparallelの関係にあるので、2つのNonEmptySeqをparMapNして足せば完成する
-        val durs: Seq[Double] =
-          (
-            NES.fromSeqUnsafe(vowelDurs),
-            NES.fromSeqUnsafe(consonantDurs)
-          ).parMapN(_ + _).toSeq
+        val durs = speechParameters(aq).moras.map(_.duration)
 
         // 先頭と末尾にはわずかに無音期間が設定されている。これをSeqの先頭と最後の要素に加算する
         val paddedDurs = durs match {
           case head +: mid :+ last =>
-            val headPadding = root.prePhonemeLength.double.getOption(aq).get
-            val lastPadding = root.postPhonemeLength.double.getOption(aq).get
-            (headPadding + head) +: mid :+ (last + pausesDur.combineAll + lastPadding)
+            val headPadding = speechParameters(aq).prePhonemeLength
+            val lastPadding = speechParameters(aq).postPhonemeLength
+            (headPadding + head) +: mid :+ (last + pausesDur.sum + lastPadding)
         }
 
-        vowels zip paddedDurs.map { s =>
-          val finite = Duration(s"$s second")
-          Some(finite).collect { case d: FiniteDuration =>
-            d
-          }.get
+        val durations = paddedDurs.map { s =>
+          Duration(s"$s seconds").asInstanceOf[FiniteDuration]
         }
+
+        vowels zip durations
       }
 
     private lazy val client = {

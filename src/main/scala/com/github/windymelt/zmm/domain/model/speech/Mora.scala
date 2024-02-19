@@ -12,7 +12,9 @@ case class Mora(
                  vowel: String,
                  vowel_length: Double,
                  pitch: Double
-               )
+               ) {
+  def duration: Double = consonant_length.getOrElse(0.0) + vowel_length
+}
 
 case class AccentPhrase(
                          moras: Seq[Mora],
@@ -35,6 +37,8 @@ case class SpeechParameters(
                            ) {
   def vowels: Seq[String] = accent_phrases.flatMap(_.moras.map(_.vowel))
   def vowelDurs: Seq[Double] = accent_phrases.flatMap(_.moras.map(_.vowel_length))
+  def moras: Seq[Mora] = accent_phrases.flatMap(_.moras)
+  def pause_moras: Seq[Mora] = accent_phrases.flatMap(_.pause_mora)
 }
 
 
