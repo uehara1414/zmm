@@ -14,22 +14,20 @@ object Filter {
         val ExtRe = """(.+)\.(.+)""".r.anchored
 
         val spokenCtxs = vs.map { v =>
-          ctx.spokenByCharacterId match {
-            case None => ctx
-            case Some(cid) =>
-              ctx.copy(
-                duration = Some(v._2),
-                currentVowel = Some(v._1),
-                charactersMap = ctx.charactersMap // こんなネストが必要になるのは設計が間違ってるんだと思うが、今の経験値ではどうせ大した設計はできないのでしばらくこれでいく
-                  .updated(
-                    cid,
-                    ctx.speakingCharacter.copy(state =
-                      ctx.speakingCharacter.state
-                        .copy(mouthShape = MouthShape.mouthShapeByVowel(v._1))
-                    )
+          val cid = ctx.speakingCharacter.get.config.characterId
+          ctx.copy(
+            duration = Some(v._2),
+            currentVowel = Some(v._1),
+            charactersMap =
+              ctx.charactersMap // こんなネストが必要になるのは設計が間違ってるんだと思うが、今の経験値ではどうせ大した設計はできないのでしばらくこれでいく
+                .updated(
+                  cid,
+                  ctx.speakingCharacter.get.copy(state =
+                    ctx.speakingCharacter.get.state
+                      .copy(mouthShape = MouthShape.mouthShapeByVowel(v._1))
                   )
-              )
-          }
+                )
+          )
         }
 
         // 合計Durationは元々のDurationと一致させるべく調整する
@@ -54,9 +52,9 @@ object Filter {
                   duration = Some(ctx.duration.get / 2),
                   charactersMap = ctx.charactersMap
                     .updated(
-                      ctx.spokenByCharacterId.get,
-                      ctx.speakingCharacter.copy(state =
-                        ctx.speakingCharacter.state
+                      ctx.speakingCharacter.get.config.characterId,
+                      ctx.speakingCharacter.get.copy(state =
+                        ctx.speakingCharacter.get.state
                           .copy(eyeState = EyeState(OpenState.Close))
                       )
                     )
@@ -64,9 +62,9 @@ object Filter {
                 ctx.copy(
                   charactersMap = ctx.charactersMap
                     .updated(
-                      ctx.spokenByCharacterId.get,
-                      ctx.speakingCharacter.copy(state =
-                        ctx.speakingCharacter.state
+                      ctx.speakingCharacter.get.config.characterId,
+                      ctx.speakingCharacter.get.copy(state =
+                        ctx.speakingCharacter.get.state
                           .copy(eyeState = EyeState(OpenState.Open))
                       )
                     ),

@@ -30,7 +30,6 @@ final case class Context(
     voiceConfigMap: Map[String, VoiceBackendConfig] = Map.empty,
     characterConfigMap: Map[String, CharacterConfig] = Map.empty,
     backgroundImageUrl: Option[String] = None,
-    spokenByCharacterId: Option[String] = None,
     duration: Option[FiniteDuration] = None, // 音声合成時に明らかになるのでデフォルトではNone
     spokenVowels: Option[Seq[(String, FiniteDuration)]] = None, // 口パクのために使う母音情報
     speed: Option[String] = Some("1.0"),
@@ -52,12 +51,12 @@ final case class Context(
   def atv: Map[String, String] =
     additionalTemplateVariables // alias for template
 
-  def isSilent: Boolean = spokenByCharacterId.contains("silent")
+  def isSilent: Boolean = !charactersMap.values.exists(_.state.isSpeaking)
 
-  def tachieUrl: String = speakingCharacter.tachieUrl
+  def tachieUrl: Option[String] = speakingCharacter.map(_.tachieUrl)
 
-  def speakingCharacter: Character = {
-    charactersMap(spokenByCharacterId.get)
+  def speakingCharacter: Option[Character] = {
+    charactersMap.values.find(_.state.isSpeaking)
   }
 }
 
@@ -75,18 +74,17 @@ object Context {
   // Context is a Monoid
   implicit val monoidForContext: Monoid[Context] = new Monoid[Context] {
     def combine(x: Context, y: Context): Context = {
-      val spokenByCharacterId = y.spokenByCharacterId |+| x.spokenByCharacterId
-      val characterConfigMap = x.characterConfigMap ++ y.characterConfigMap
+      val xCharacterId: Option[String] = x.speakingCharacter.flatMap(xc => Some(xc.config.characterId))
+      val yCharacterId: Option[String] = y.speakingCharacter.flatMap(yc => Some(yc.config.characterId))
+      val speakingCharacterId: Option[String] = xCharacterId orElse yCharacterId
+      val characterConfigMap: Map[String, CharacterConfig] = x.characterConfigMap ++ y.characterConfigMap
       val serifColor =
-        y.serifColor orElse x.serifColor orElse spokenByCharacterId
-          .flatMap(characterConfigMap.get)
-          .flatMap(_.serifColor)
+        y.serifColor orElse x.serifColor orElse speakingCharacterId.flatMap(id => Some(characterConfigMap(id))).flatMap(_.serifColor)
       Context(
         voiceConfigMap = x.voiceConfigMap ++ y.voiceConfigMap,
         characterConfigMap = characterConfigMap,
         backgroundImageUrl =
           y.backgroundImageUrl orElse x.backgroundImageUrl, // 後勝ち
-        spokenByCharacterId = spokenByCharacterId,
         duration = y.duration <+> x.duration,
         spokenVowels = y.spokenVowels <+> x.spokenVowels,
         speed = y.speed orElse x.speed, // 後勝ち
@@ -119,26 +117,45 @@ object Context {
     case Text(t) => Seq(Say(t) -> currentContext)
     case e: Elem =>
       e.child.flatMap(c =>
-        sayContextPairFromNode(c, currentContext |+| extract(e))
+        sayContextPairFromNode(c, currentContext |+| extract(e, currentContext))
       )
   }
 
   private def firstAttrTextOf(e: Elem, a: String): Option[String] =
     e.attribute(a).headOption.flatMap(_.headOption).map(_.text)
 
-  private def extract(e: Elem): Context = {
+  private def extract(e: Elem, ctx: Context): Context = {
     val atvs = {
       val motif = firstAttrTextOf(e, "motif").map("motif" -> _)
       val code = firstAttrTextOf(e, "code").map("code" -> _)
       val math = firstAttrTextOf(e, "math").map("math" -> _)
       Seq(motif, code, math).flatten.toMap
     }
+
+    val by = firstAttrTextOf(e, "by")
+
+    val updatedCharactersMap = by match {
+      case Some(id) => {
+        val updatedCharacter = ctx.charactersMap(id).copy(
+          state = ctx.charactersMap(id).state.copy(isSpeaking = true)
+        )
+        ctx.charactersMap.map(
+          (k, v) => {
+            k -> v.copy(state = v.state.copy(isSpeaking = false))
+          }
+        ).updated(
+          id,
+          updatedCharacter
+        )
+      }
+      case _ => ctx.charactersMap
+    }
+
     Context(
       voiceConfigMap = empty.voiceConfigMap, // TODO
       characterConfigMap = empty.characterConfigMap, // TODO
       backgroundImageUrl =
         firstAttrTextOf(e, "backgroundImage"), // TODO: no camelCase
-      spokenByCharacterId = firstAttrTextOf(e, "by"),
       speed = firstAttrTextOf(e, "speed"),
       font = firstAttrTextOf(e, "font"),
       serifColor = firstAttrTextOf(e, "serif-color"),
@@ -148,7 +165,8 @@ object Context {
       silentLength = firstAttrTextOf(e, "silent-length").map(l =>
         FiniteDuration.apply(Integer.parseInt(l), "second")
       ),
-      video = firstAttrTextOf(e, "video")
+      video = firstAttrTextOf(e, "video"),
+      charactersMap = updatedCharactersMap
     )
   }
 
