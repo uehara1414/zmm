@@ -44,7 +44,9 @@ object Html {
       s"ctx.spokenVowels: ${ctx.spokenVowels}",
       s"ctx.currentVowel: ${ctx.currentVowel}",
       s"ctx.tachieUrl: ${ctx.tachieUrl}",
-      s"ctx.currentSpeakingCharacter: ${ctx.speakingCharacter}"
+      s"ctx.leftTachieUrl: ${ctx.leftTachieUrl}",
+      s"ctx.rightCharacter: ${ctx.speakingCharacter}",
+      s"ctx.leftCharacter: ${ctx.leftCharacter}",
     )
   }
 }

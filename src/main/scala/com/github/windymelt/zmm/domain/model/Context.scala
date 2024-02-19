@@ -1,6 +1,6 @@
 package com.github.windymelt.zmm.domain.model
 
-import com.github.windymelt.zmm.domain.model.character.Character
+import com.github.windymelt.zmm.domain.model.character.{Character, TachiePosition}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -13,7 +13,8 @@ final case class CharacterConfig(
     name: String,
     voiceId: String,
     serifColor: Option[String] = None,
-    tachieUrl: Option[String] = None // セリフカラー同様、セリフによって上書きされうる
+    tachieUrl: Option[String] = None, // セリフカラー同様、セリフによって上書きされうる
+    position: Option[TachiePosition] = Some(TachiePosition.Right)
 )
 
 /*
@@ -53,7 +54,13 @@ final case class Context(
 
   def isSilent: Boolean = !charactersMap.values.exists(_.state.isSpeaking)
 
-  def tachieUrl: Option[String] = speakingCharacter.map(_.tachieUrl)
+  def tachieUrl: Option[String] = rightCharacter.map(c => c.tachieUrl)
+
+  def rightCharacter: Option[Character] = charactersMap.values.find(c => c.state.position == TachiePosition.Right && c.state.isSpeaking)
+
+  def leftCharacter: Option[Character] = charactersMap.values.find(c => c.state.position == TachiePosition.Left && c.state.isSpeaking)
+
+  def leftTachieUrl: Option[String] = leftCharacter.flatMap(c => Some(c.tachieUrl))
 
   def speakingCharacter: Option[Character] = {
     charactersMap.values.find(_.state.isSpeaking)

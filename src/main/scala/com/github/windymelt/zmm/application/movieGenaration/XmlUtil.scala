@@ -1,6 +1,7 @@
 package com.github.windymelt.zmm.application.movieGenaration
 
 import cats.effect.IO
+import com.github.windymelt.zmm.domain.model.character.TachiePosition
 import com.github.windymelt.zmm.domain.model.{CharacterConfig, VoiceBackendConfig, character}
 import com.github.windymelt.zmm.{domain, util}
 
@@ -48,11 +49,17 @@ class XmlUtil {
       val name = cc \@ "name"
       val defaultSerifColor = Some(cc \@ "serif-color").filterNot(_.isEmpty())
       val tachieUrl = Some(cc \@ "tachie-url").filterNot(_.isEmpty())
+      val position = Some(cc \@ "position").filterNot(_.isEmpty()) match {
+        case Some("left") => Some(TachiePosition.Left)
+        case Some("right") => Some(TachiePosition.Right)
+        case _ => Some(TachiePosition.Right)
+      }
       name -> CharacterConfig(
         name,
         cc \@ "voice-id",
         defaultSerifColor,
-        tachieUrl
+        tachieUrl,
+        position
       )
     }.toMap
   }

@@ -13,6 +13,7 @@ import fs2.io.file.Path
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.postfixOps
 import cats.syntax.parallel.*
+import com.github.windymelt.zmm.domain.model.character.TachiePosition
 
 class GenerateMovie(
     filePath: String,
@@ -222,8 +223,10 @@ class GenerateMovie(
     val charactersMap = characterConfigMap.map {
       (k, v) =>
       k -> character.Character(
-        character.Config(k, voiceConfigMap(v.voiceId).asInstanceOf[VoiceVoxBackendConfig].speakerId, Tachie.prepare(v.tachieUrl.get)),
-        character.State.default
+        character.Config(k, 
+          voiceConfigMap(v.voiceId).asInstanceOf[VoiceVoxBackendConfig].speakerId,
+          Tachie.prepare(v.tachieUrl.get)),
+        character.State.default.copy(position = v.position.getOrElse(TachiePosition.Right))
       )
     }
 

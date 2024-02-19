@@ -37,8 +37,8 @@
             }
             </pre>
         </div>
-        <img alt="" src="@com.github.windymelt.zmm.util.PathAlias.resolve(ctx.tachieUrl.get, "template")" onerror='this.style.display = "none"' style="position: fixed; height: 100%; bottom: -30%; left: -5%;" />
-        <img alt="" src="@com.github.windymelt.zmm.util.PathAlias.resolve(ctx.tachieUrl.get, "template")" onerror='this.style.display = "none"' style="position: fixed; height: 100%; bottom: -30%; right: -5%;" />
+        <img alt="" src="@com.github.windymelt.zmm.util.PathAlias.resolve(ctx.leftTachieUrl.getOrElse(""), "template")" onerror='this.style.display = "none"' style="position: fixed; height: 100%; bottom: -30%; left: -5%;" />
+        <img alt="" src="@com.github.windymelt.zmm.util.PathAlias.resolve(ctx.tachieUrl.getOrElse(""), "template")" onerror='this.style.display = "none"' style="position: fixed; height: 100%; bottom: -30%; right: -5%;" />
         <div style="background-color: rgba(0,0,0,0.5); position: fixed; left: 0px; bottom: 0px; height: 25%; width: 100%; font-size: 48pt; padding: 1em 0 0 0;">
             <div style="padding:0 1em 0 1em; font-family: @font(); font-weight: 800; color: white; -webkit-text-stroke: 0.05em @{ctx.serifColor.getOrElse("black")}; text-stroke: 0.05em @{ctx.serifColor.getOrElse("black")}; filter: drop-shadow(0 0 0.3em #ccc); text-align: center;"><budoux-ja>@serif</budoux-ja></div>
             <!-- <div style="padding:0 1em 0 1em; font-family: Corporate Logo ver3; font-weight: 800; color: white; -webkit-text-stroke: 0.05em black; text-stroke: 0.05em black;">
