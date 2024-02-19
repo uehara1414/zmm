@@ -10,7 +10,7 @@ case class Mora(
                  consonant: Option[String],
                  consonant_length: Option[Double],
                  vowel: String,
-                 vowel_length: Double,
+                 vowel_length: Double, // この時点で FiniteDuration にしてもいいかもしれん
                  pitch: Double
                ) {
   def duration: Double = consonant_length.getOrElse(0.0) + vowel_length
