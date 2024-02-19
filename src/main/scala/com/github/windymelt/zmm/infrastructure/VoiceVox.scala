@@ -116,7 +116,7 @@ trait VoiceVoxComponent {
     def getVowels(speech: SpeechParameters): IO[domain.model.VowelSeqWithDuration] =
       IO.pure {
         speech.durationAdjustedMoras.map {
-          m => (m.vowel, Duration(s"${m.duration} seconds").asInstanceOf[FiniteDuration])
+          m => (m.vowel, m.finiteDuration)
         }
       }
 

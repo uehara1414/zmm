@@ -1,9 +1,11 @@
 package com.github.windymelt.zmm.domain.model.speech
 
 import io.circe.{Decoder, Encoder, HCursor, Json}
-import io.circe.parser._
+import io.circe.parser.*
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.generic.auto
+
+import scala.concurrent.duration.FiniteDuration
 
 case class Mora(
                  text: String,
@@ -14,6 +16,7 @@ case class Mora(
                  pitch: Double
                ) {
   def duration: Double = consonant_length.getOrElse(0.0) + vowel_length
+  def finiteDuration: FiniteDuration = FiniteDuration((duration * 1000 * 1000 * 1000).toLong, "nanoseconds")
 }
 
 case class AccentPhrase(
