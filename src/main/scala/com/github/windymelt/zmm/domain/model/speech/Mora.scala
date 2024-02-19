@@ -42,7 +42,7 @@ case class SpeechParameters(
 }
 
 
-object AudioQueryParser {
+object SpeechParametersParser {
   def parseJson(jsonString: String): Option[SpeechParameters] = {
     val parseResult = parse(jsonString)
 

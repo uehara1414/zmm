@@ -2,7 +2,7 @@ package com.github.windymelt.zmm
 package infrastructure
 
 import com.github.windymelt.zmm.domain.model.speech.{
-  AudioQueryParser,
+  SpeechParametersParser,
   SpeechParameters
 }
 
@@ -23,7 +23,6 @@ trait VoiceVoxComponent {
   import io.circe.literal._
   import org.http4s.circe.CirceEntityDecoder._
 
-  type AudioQuery = Json // TODO: 必要に応じて高級なcase class / HListにする
   type SpeakerInfo = Json // TODO: 必要に応じて高級なcase class / HListにする
   def voiceVox: VoiceVox
 
@@ -58,10 +57,10 @@ trait VoiceVoxComponent {
           uri = uri.fold(throw _, identity),
           headers = Headers("accept" -> "application/json")
         )
-        c.expect[AudioQuery](req).flatMap(aq => IO.pure(speechParameters(aq)))
+        c.expect[Json](req).flatMap(json => IO.pure(SpeechParametersParser.parseJson(json.toString).get))
     }
 
-    def synthesis(aq: SpeechParameters, speaker: String): IO[fs2.Stream[IO, Byte]] =
+    def synthesis(speech: SpeechParameters, speaker: String): IO[fs2.Stream[IO, Byte]] =
       client.use { c =>
         import io.circe.generic.auto._
         import io.circe.syntax._
@@ -75,15 +74,15 @@ trait VoiceVoxComponent {
           uri = uri.fold(throw _, identity),
           headers = Headers("Content-Type" -> "application/json"),
           body = fs2.Stream.fromIterator[IO](
-            aq.asJson.toString().getBytes().iterator,
+            speech.asJson.toString().getBytes().iterator,
             64
           ) // TODO: chinksize適当に指定しているのでなんとかする
         )
         IO.pure(c.stream(req).flatMap(_.body))
       }
 
-    def controlSpeed(aq: SpeechParameters, speed: String): IO[SpeechParameters] = {
-      IO.pure { aq.copy(speedScale = speed.toDouble) }
+    def controlSpeed(speech: SpeechParameters, speed: String): IO[SpeechParameters] = {
+      IO.pure { speech.copy(speedScale = speed.toDouble) }
     }
 
     def registerDict(
@@ -114,22 +113,22 @@ trait VoiceVoxComponent {
       c.successful(req) *> IO.unit
     }
 
-    def getVowels(aq: SpeechParameters): IO[domain.model.VowelSeqWithDuration] =
+    def getVowels(speech: SpeechParameters): IO[domain.model.VowelSeqWithDuration] =
       IO.pure {
         // 簡単のために母音と子音まとめて時間に含めてしまう
 
         // 母音
-        val vowels: Seq[String] = aq.vowels
+        val vowels: Seq[String] = speech.vowels
         // 無音期間
-        val pausesDur = aq.pause_moras.map(_.duration)
+        val pausesDur = speech.pause_moras.map(_.duration)
 
-        val durs = aq.moras.map(_.duration)
+        val durs = speech.moras.map(_.duration)
 
         // 先頭と末尾にはわずかに無音期間が設定されている。これをSeqの先頭と最後の要素に加算する
         val paddedDurs = durs match {
           case head +: mid :+ last =>
-            val headPadding = aq.prePhonemeLength
-            val lastPadding = aq.postPhonemeLength
+            val headPadding = speech.prePhonemeLength
+            val lastPadding = speech.postPhonemeLength
             (headPadding + head) +: mid :+ (last + pausesDur.sum + lastPadding)
         }
 
@@ -148,10 +147,6 @@ trait VoiceVoxComponent {
         .withTimeout(5 minutes)
         .withIdleConnectionTime(10 minutes)
         .build
-    }
-
-    private def speechParameters(aq: AudioQuery): SpeechParameters = {
-      AudioQueryParser.parseJson(aq.toString).get
     }
   }
 }

@@ -70,16 +70,16 @@ class WavGenerator(logLevel: String = "INFO")
           ctx
         )
       _ <- logger.debug(speech.toString())
-      aq <- ctx.speed map (sp => voiceVox.controlSpeed(speech, sp)) getOrElse (IO.pure(speech))
+      speech <- ctx.speed map (sp => voiceVox.controlSpeed(speech, sp)) getOrElse (IO.pure(speech))
       // CLI出力まで持ってくるのがだるいので一旦コメントアウト
       // wav <- backgroundIndicator("Synthesizing wav").use { _ =>
-      wav <- execute(aq, ctx.spokenByCharacterId.get, ctx)
+      wav <- execute(speech, ctx.spokenByCharacterId.get, ctx)
       sha1Hex <- sha1HexCode(sayElem.text.getBytes())
       // CLI出力まで持ってくるのがだるいので一旦コメントアウト
       // path <- backgroundIndicator("Exporting .wav file").use { _ =>
       path <- writeStreamToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
       dur <- ffmpeg.getWavDuration(path.toString)
-      vowels <- voiceVox.getVowels(aq)
+      vowels <- voiceVox.getVowels(speech)
     } yield GeneratedWav(path, dur, vowels)
 
   private def extractSpeakerId(character: String, ctx: Context): String = {
