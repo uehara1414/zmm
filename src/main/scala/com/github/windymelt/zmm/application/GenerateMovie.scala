@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
 import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, Html, IndicatorHelper, WavGenerator, XmlUtil}
-import com.github.windymelt.zmm.domain.model.{Context, GeneratedWav, Say, TachiePresets, VoiceBackendConfig, Tachie}
+import com.github.windymelt.zmm.domain.model.{Context, GeneratedWav, Say, Tachie, TachiePresets, VoiceBackendConfig, VoiceVoxBackendConfig, character}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -89,7 +89,12 @@ class GenerateMovie(
       defaultCtx <- prepareDefaultContext(x)
       _ <- dictionaryApplier.execute(defaultCtx.dict)
       // dialogue要素から取得したセリフとコンテキストのペアを作成する
-      sayCtxPairs <- IO.pure { Context.sayContextPairFromNode(xmlUtil.extractDialogElements(x), defaultCtx) }
+      sayCtxPairs <- IO.pure {
+        Context.sayContextPairFromNode(
+          xmlUtil.extractDialogElements(x),
+          defaultCtx
+        )
+      }
       // dialogue要素から取得したセリフを元に音声ファイルを作成する
       generatedWavs <- {
         val saySeq = sayCtxPairs map { (s, ctx) =>
@@ -112,7 +117,9 @@ class GenerateMovie(
               (
                 say,
                 ctx.copy(
-                  spokenVowels = Some(generatedWav.moras.map(m => (m.vowel, m.finiteDuration))), // spokenVowelsもmorasに置き換えたいが影響範囲が大きいので今は諦める
+                  spokenVowels = Some(
+                    generatedWav.moras.map(m => (m.vowel, m.finiteDuration))
+                  ), // spokenVowelsもmorasに置き換えたいが影響範囲が大きいので今は諦める
                   duration = Some(generatedWav.duration)
                 )
               )
@@ -212,6 +219,13 @@ class GenerateMovie(
     val codes: Map[String, (String, Option[String])] =
       xmlUtil.extractCodes(elem)
     val maths = xmlUtil.extractMaths(elem)
+    val characters = characterConfigMap.map {
+      (k, v) =>
+      character.Character(
+        character.Config(k, voiceConfigMap(v.voiceId).asInstanceOf[VoiceVoxBackendConfig].speakerId, Tachie.prepare(v.tachieUrl.get)),
+        character.State.default
+      )
+    }.toSeq
 
     IO.pure(
       domain.model.Context(
@@ -222,7 +236,8 @@ class GenerateMovie(
         dict = dict,
         codes = codes,
         maths = maths,
-        font = defaultFont
+        font = defaultFont,
+        characters = characters
       )
     )
   }
@@ -239,7 +254,11 @@ class GenerateMovie(
       .flatMap(eyeTransitionFilter.second.run)
   }
 
-  private def screenShot(ss: ScreenShot, say: Say, ctx: Context): IO[os.Path] = {
+  private def screenShot(
+      ss: ScreenShot,
+      say: Say,
+      ctx: Context
+  ): IO[os.Path] = {
     for {
       html <- Html.build(say.text, ctx)
       // スクリーンショットは重いのでHTMLの内容をもとにキャッシュする(HTMLが同一内容なら同一のスクリーンショットになるという前提)

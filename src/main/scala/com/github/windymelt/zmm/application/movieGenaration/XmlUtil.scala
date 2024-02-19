@@ -1,10 +1,7 @@
 package com.github.windymelt.zmm.application.movieGenaration
 
 import cats.effect.IO
-import com.github.windymelt.zmm.domain.model.{
-  CharacterConfig,
-  VoiceBackendConfig
-}
+import com.github.windymelt.zmm.domain.model.{CharacterConfig, VoiceBackendConfig, character}
 import com.github.windymelt.zmm.{domain, util}
 
 import scala.xml.Elem
@@ -51,7 +48,7 @@ class XmlUtil {
       val name = cc \@ "name"
       val defaultSerifColor = Some(cc \@ "serif-color").filterNot(_.isEmpty())
       val tachieUrl = Some(cc \@ "tachie-url").filterNot(_.isEmpty())
-      name -> domain.model.CharacterConfig(
+      name -> CharacterConfig(
         name,
         cc \@ "voice-id",
         defaultSerifColor,

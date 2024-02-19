@@ -66,9 +66,8 @@ class WavGenerator(logLevel: String = "INFO")
       // aq <- backgroundIndicator("Building Audio Query").use { _ =>
       speech <- audioQueryFetcher.fetch( // by属性がないことはないやろという想定でgetしている
           actualPronunciation,
-          ctx.spokenByCharacterId.get,
-          ctx
-        )
+          ctx.speakingCharacter
+      )
       _ <- logger.debug(speech.toString())
       speech <- ctx.speed map (sp => voiceVox.controlSpeed(speech, sp)) getOrElse (IO.pure(speech))
       // CLI出力まで持ってくるのがだるいので一旦コメントアウト

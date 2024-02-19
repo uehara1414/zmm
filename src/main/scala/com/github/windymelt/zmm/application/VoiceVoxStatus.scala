@@ -3,9 +3,10 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 
-class VoiceVoxStatus extends domain.repository.VoiceVoxComponent
-  with infrastructure.VoiceVoxComponent
-  with util.UtilComponent {
+class VoiceVoxStatus
+    extends domain.repository.VoiceVoxComponent
+    with infrastructure.VoiceVoxComponent
+    with util.UtilComponent {
 
   val voiceVoxUri =
     sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
@@ -26,7 +27,7 @@ class VoiceVoxStatus extends domain.repository.VoiceVoxComponent
             styleToSeq(speaker("name").get.asString.get)(
               s("id").get.asNumber.get.toString
             )(s("name").get.asString.get)
-            )
+          )
         }
         speakersArray.flatMap(speakerToSeq).map(_.toArray).toArray
       }

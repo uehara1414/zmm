@@ -1,5 +1,7 @@
 package com.github.windymelt.zmm.domain.model
 
+import com.github.windymelt.zmm.domain.model.character.Character
+
 import scala.concurrent.duration.FiniteDuration
 
 sealed trait VoiceBackendConfig
@@ -45,7 +47,8 @@ final case class Context(
     silentLength: Option[FiniteDuration] = None, // by=silentな場合に停止する時間
     video: Option[String] = None, // 背景に合成する動画
     currentVowel: Option[String] = None,
-    eyeState: EyeState = EyeState.default
+    eyeState: EyeState = EyeState.default,
+    characters: Seq[Character] = Seq.empty
     // TODO: BGM, fontColor, etc.
 ) {
   def atv: Map[String, String] =
@@ -67,7 +70,17 @@ final case class Context(
   }
 
   def tachieUrl: String = {
-    Tachie.getTachieFromVowel(currentVowel.get, eyeState, currentCharacterTachiePresets.get).tachieUrl
+    Tachie
+      .getTachieFromVowel(
+        currentVowel.get,
+        eyeState,
+        currentCharacterTachiePresets.get
+      )
+      .tachieUrl
+  }
+
+  def speakingCharacter: Character = {
+    spokenByCharacterId.flatMap(id => characters.find(_.config.characterId == id)).get
   }
 }
 
@@ -92,7 +105,8 @@ object Context {
           .flatMap(characterConfigMap.get)
           .flatMap(_.serifColor)
       Context(
-        tachiePresetsMap = x.tachiePresetsMap ++ y.tachiePresetsMap, // defaultから変化しない想定
+        tachiePresetsMap =
+          x.tachiePresetsMap ++ y.tachiePresetsMap, // defaultから変化しない想定
         voiceConfigMap = x.voiceConfigMap ++ y.voiceConfigMap,
         characterConfigMap = characterConfigMap,
         backgroundImageUrl =
@@ -113,8 +127,13 @@ object Context {
         sic = y.sic orElse x.sic,
         silentLength = y.silentLength <+> x.silentLength,
         video = y.video <+> x.video,
-        currentVowel = y.currentVowel,         
-        eyeState = y.eyeState
+        currentVowel = y.currentVowel,
+        eyeState = y.eyeState,
+        characters = (y.characters ++ x.characters) // Seqにしたの少し後悔している
+          .groupBy(_.config.characterId)
+          .view.mapValues(_.head)
+          .values
+          .toSeq
       )
     }
     def empty: Context = Context.empty

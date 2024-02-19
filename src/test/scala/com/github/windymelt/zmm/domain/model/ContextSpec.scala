@@ -10,19 +10,19 @@ class ContextSpec extends AnyFlatSpec with Matchers {
     val x = Context(
       Map.empty,
       Map("zundamon" -> VoiceVoxBackendConfig("3")),
-      Map("z" -> CharacterConfig("z", "zundamon")),
+      Map("z" -> character.CharacterConfig("z", "zundamon")),
       Some("https://example.com/bg1.png")
     )
     val y = Context(
       Map.empty,
       Map("metan" -> VoiceVoxBackendConfig("2")),
-      Map("m" -> CharacterConfig("m", "metan")),
+      Map("m" -> character.CharacterConfig("m", "metan")),
       Some("https://example.com/bg2.png")
     )
     val z = Context(
       Map.empty,
       Map("tsumugi" -> VoiceVoxBackendConfig("8")),
-      Map("t" -> CharacterConfig("t", "tsumugi")),
+      Map("t" -> character.CharacterConfig("t", "tsumugi")),
       None
     )
 
@@ -34,7 +34,7 @@ class ContextSpec extends AnyFlatSpec with Matchers {
     val x = Context(
       Map.empty,
       Map("zundamon" -> VoiceVoxBackendConfig("3")),
-      Map("z" -> CharacterConfig("z", "zundamon"))
+      Map("z" -> character.CharacterConfig("z", "zundamon"))
     )
 
     val e = Context.empty
