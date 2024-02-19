@@ -32,7 +32,10 @@ case class SpeechParameters(
                              outputSamplingRate: Int,
                              outputStereo: Boolean,
                              kana: String
-                           )
+                           ) {
+  def vowels: Seq[String] = accent_phrases.flatMap(_.moras.map(_.vowel))
+  def vowelDurs: Seq[Double] = accent_phrases.flatMap(_.moras.map(_.vowel_length))
+}
 
 
 object AudioQueryParser {

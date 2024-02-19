@@ -1,7 +1,10 @@
 package com.github.windymelt.zmm
 package infrastructure
 
-import com.github.windymelt.zmm.domain.model.speech.AudioQueryParser
+import com.github.windymelt.zmm.domain.model.speech.{
+  AudioQueryParser,
+  SpeechParameters
+}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
@@ -60,13 +63,10 @@ trait VoiceVoxComponent {
 
     def synthesis(aq: AudioQuery, speaker: String): IO[fs2.Stream[IO, Byte]] =
       client.use { c =>
-        val uri = Uri
-          .fromString(s"${voiceVoxUri}/synthesis")
-          .map(
-            _.copy(
-              query = org.http4s.Query.fromMap(Map("speaker" -> Seq(speaker)))
-            )
-          )
+        val query = org.http4s.Query.fromMap(Map("speaker" -> Seq(speaker)))
+        val url = s"${voiceVoxUri}/synthesis"
+        val uri = Uri.fromString(url).map(_.copy(query = query))
+
         val req = Request[IO](
           Method.POST,
           uri = uri.fold(throw _, identity),
@@ -129,10 +129,8 @@ trait VoiceVoxComponent {
         // 簡単のために母音と子音まとめて時間に含めてしまう
 
         // 母音
-        val vowels: Seq[String] =
-          root.accent_phrases.each.moras.each.vowel.string.getAll(aq)
-        val vowelDurs: Seq[Double] =
-          root.accent_phrases.each.moras.each.vowel_length.double.getAll(aq)
+        val vowels: Seq[String] = speechParameters(aq).vowels
+        val vowelDurs: Seq[Double] = speechParameters(aq).vowelDurs
 
         // 子音はあったりなかったりするのでちょっと複雑
         // 複数のOpticsの合成で値を取り出す
@@ -189,6 +187,10 @@ trait VoiceVoxComponent {
         .withTimeout(5 minutes)
         .withIdleConnectionTime(10 minutes)
         .build
+    }
+
+    private def speechParameters(aq: AudioQuery): SpeechParameters = {
+      AudioQueryParser.parseJson(aq.toString).get
     }
   }
 }
