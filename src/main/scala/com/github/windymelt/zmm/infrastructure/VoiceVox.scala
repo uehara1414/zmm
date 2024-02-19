@@ -115,12 +115,9 @@ trait VoiceVoxComponent {
 
     def getVowels(speech: SpeechParameters): IO[domain.model.VowelSeqWithDuration] =
       IO.pure {
-        val vowels = speech.durationAdjustedMoras.map(_.vowel)
-        val durations = speech.durationAdjustedMoras.map(_.duration).map { s =>
-          Duration(s"$s seconds").asInstanceOf[FiniteDuration]
+        speech.durationAdjustedMoras.map {
+          m => (m.vowel, Duration(s"${m.duration} seconds").asInstanceOf[FiniteDuration])
         }
-
-        vowels zip durations
       }
 
     private lazy val client = {
