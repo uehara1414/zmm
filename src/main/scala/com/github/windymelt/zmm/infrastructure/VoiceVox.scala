@@ -115,24 +115,8 @@ trait VoiceVoxComponent {
 
     def getVowels(speech: SpeechParameters): IO[domain.model.VowelSeqWithDuration] =
       IO.pure {
-        // 簡単のために母音と子音まとめて時間に含めてしまう
-
-        // 母音
-        val vowels: Seq[String] = speech.vowels
-        // 無音期間
-        val pausesDur = speech.pause_moras.map(_.duration)
-
-        val durs = speech.moras.map(_.duration)
-
-        // 先頭と末尾にはわずかに無音期間が設定されている。これをSeqの先頭と最後の要素に加算する
-        val paddedDurs = durs match {
-          case head +: mid :+ last =>
-            val headPadding = speech.prePhonemeLength
-            val lastPadding = speech.postPhonemeLength
-            (headPadding + head) +: mid :+ (last + pausesDur.sum + lastPadding)
-        }
-
-        val durations = paddedDurs.map { s =>
+        val vowels = speech.durationAdjustedMoras.map(_.vowel)
+        val durations = speech.durationAdjustedMoras.map(_.duration).map { s =>
           Duration(s"$s seconds").asInstanceOf[FiniteDuration]
         }
 

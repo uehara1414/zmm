@@ -21,7 +21,9 @@ case class AccentPhrase(
                          accent: Int,
                          pause_mora: Option[Mora],
                          is_interrogative: Boolean
-                       )
+                       ) {
+  def morasIncludingPause: Seq[Mora] = moras ++ pause_mora
+}
 
 case class SpeechParameters(
                              accent_phrases: Seq[AccentPhrase],
@@ -39,6 +41,16 @@ case class SpeechParameters(
   def vowelDurs: Seq[Double] = accent_phrases.flatMap(_.moras.map(_.vowel_length))
   def moras: Seq[Mora] = accent_phrases.flatMap(_.moras)
   def pause_moras: Seq[Mora] = accent_phrases.flatMap(_.pause_mora)
+
+  def durationAdjustedMoras: Seq[Mora] = {
+    val moras = accent_phrases.flatMap(_.morasIncludingPause)
+
+    // セリフの前後の空白時間を、最初と最後の音単位の母音の長さに入れる。本来は空白時間を表すモデルを作るべきだが、だるいのでとりあえずはこれでしのぐ。
+    moras match {
+      case head +: mid :+ last =>
+        head.copy(vowel_length = head.vowel_length + prePhonemeLength) +: mid :+ last.copy(vowel_length = last.vowel_length + postPhonemeLength)
+    }
+  }
 }
 
 
