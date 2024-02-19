@@ -3,6 +3,7 @@ package com.github.windymelt.zmm.application.movieGenaration
 import cats.effect.IO
 import com.github.windymelt.zmm.domain.model.speech.SpeechParameters
 import com.github.windymelt.zmm.domain.model.{Context, GeneratedWav}
+import com.github.windymelt.zmm.domain.model.character.Character
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -36,13 +37,10 @@ class WavGenerator(logLevel: String = "INFO")
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
 
   def execute(
-               aq: SpeechParameters,
-               character: String,
-               ctx: Context
+      speech: SpeechParameters,
+      character: Character
   ): IO[fs2.Stream[IO, Byte]] = {
-    val speakerId = extractSpeakerId(character, ctx)
-
-    voiceVox.synthesis(aq, speakerId)
+    voiceVox.synthesis(speech, character.config.speakerId)
   }
 
   def generateSilence(ctx: Context): IO[GeneratedWav] =
@@ -65,14 +63,16 @@ class WavGenerator(logLevel: String = "INFO")
       // CLI出力まで持ってくるのがだるいので一旦コメントアウト
       // aq <- backgroundIndicator("Building Audio Query").use { _ =>
       speech <- audioQueryFetcher.fetch( // by属性がないことはないやろという想定でgetしている
-          actualPronunciation,
-          ctx.speakingCharacter
+        actualPronunciation,
+        ctx.speakingCharacter
       )
       _ <- logger.debug(speech.toString())
-      speech <- ctx.speed map (sp => voiceVox.controlSpeed(speech, sp)) getOrElse (IO.pure(speech))
+      speech <- ctx.speed map (sp =>
+        voiceVox.controlSpeed(speech, sp)
+      ) getOrElse (IO.pure(speech))
       // CLI出力まで持ってくるのがだるいので一旦コメントアウト
       // wav <- backgroundIndicator("Synthesizing wav").use { _ =>
-      wav <- execute(speech, ctx.spokenByCharacterId.get, ctx)
+      wav <- execute(speech, ctx.speakingCharacter)
       sha1Hex <- sha1HexCode(sayElem.text.getBytes())
       // CLI出力まで持ってくるのがだるいので一旦コメントアウト
       // path <- backgroundIndicator("Exporting .wav file").use { _ =>
@@ -80,11 +80,4 @@ class WavGenerator(logLevel: String = "INFO")
       dur <- ffmpeg.getWavDuration(path.toString)
       moras <- voiceVox.getVowels(speech)
     } yield GeneratedWav(path, dur, moras)
-
-  private def extractSpeakerId(character: String, ctx: Context): String = {
-    val characterConfig = ctx.characterConfigMap(character)
-    val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
-
-    voiceConfig.asInstanceOf[domain.model.VoiceVoxBackendConfig].speakerId
-  }
 }

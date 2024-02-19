@@ -229,7 +229,6 @@ class GenerateMovie(
 
     IO.pure(
       domain.model.Context(
-        tachiePresetsMap,
         voiceConfigMap,
         characterConfigMap,
         defaultBackgroundImage,

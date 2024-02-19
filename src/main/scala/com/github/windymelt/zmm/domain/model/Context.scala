@@ -27,7 +27,6 @@ final case class CharacterConfig(
  */
 
 final case class Context(
-    tachiePresetsMap: Map[String, TachiePresets] = Map.empty,
     voiceConfigMap: Map[String, VoiceBackendConfig] = Map.empty,
     characterConfigMap: Map[String, CharacterConfig] = Map.empty,
     backgroundImageUrl: Option[String] = None,
@@ -47,7 +46,6 @@ final case class Context(
     silentLength: Option[FiniteDuration] = None, // by=silentな場合に停止する時間
     video: Option[String] = None, // 背景に合成する動画
     currentVowel: Option[String] = None,
-    eyeState: EyeState = EyeState.default,
     charactersMap: Map[String, Character] = Map.empty[String, Character]
     // TODO: BGM, fontColor, etc.
 ) {
@@ -55,19 +53,6 @@ final case class Context(
     additionalTemplateVariables // alias for template
 
   def isSilent: Boolean = spokenByCharacterId.contains("silent")
-  def currentSpeakingCharacter: Option[CharacterConfig] = {
-    spokenByCharacterId match {
-      case Some(id) => characterConfigMap.get(id)
-      case None     => None
-    }
-  }
-
-  def currentCharacterTachiePresets: Option[TachiePresets] = {
-    spokenByCharacterId match {
-      case Some(id) => tachiePresetsMap.get(id)
-      case None     => None
-    }
-  }
 
   def tachieUrl: String = speakingCharacter.tachieUrl
 
@@ -97,8 +82,6 @@ object Context {
           .flatMap(characterConfigMap.get)
           .flatMap(_.serifColor)
       Context(
-        tachiePresetsMap =
-          x.tachiePresetsMap ++ y.tachiePresetsMap, // defaultから変化しない想定
         voiceConfigMap = x.voiceConfigMap ++ y.voiceConfigMap,
         characterConfigMap = characterConfigMap,
         backgroundImageUrl =
@@ -120,7 +103,6 @@ object Context {
         silentLength = y.silentLength <+> x.silentLength,
         video = y.video <+> x.video,
         currentVowel = y.currentVowel,
-        eyeState = y.eyeState,
         charactersMap = x.charactersMap ++ y.charactersMap
       )
     }

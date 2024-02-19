@@ -27,13 +27,6 @@ object Tachie {
     TachiePresets(registeredTachies)
   }
 
-  def getTachieFromVowel(vowel: String, eyeState: EyeState, tachiePresets: TachiePresets): Tachie = {
-    mouthShapeByVowel.get(vowel) match {
-      case Some(mouthShape) => getTachie(mouthShape, eyeState, tachiePresets)
-      case None => tachiePresets.tachies.find(_.mouthShape == MouthShape("") && eyeState == EyeState.default).get
-    }
-  }
-
   private def tachieUrlExists(tachieUrl: String): Boolean = {
     val realPath = os.pwd / os.RelPath(util.PathAlias.resolve(tachieUrl, "ffmpeg"))
     os.exists(realPath)
