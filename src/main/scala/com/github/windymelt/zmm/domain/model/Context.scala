@@ -48,7 +48,7 @@ final case class Context(
     video: Option[String] = None, // 背景に合成する動画
     currentVowel: Option[String] = None,
     eyeState: EyeState = EyeState.default,
-    characters: Seq[Character] = Seq.empty
+    charactersMap: Map[String, Character] = Map.empty[String, Character]
     // TODO: BGM, fontColor, etc.
 ) {
   def atv: Map[String, String] =
@@ -69,18 +69,10 @@ final case class Context(
     }
   }
 
-  def tachieUrl: String = {
-    Tachie
-      .getTachieFromVowel(
-        currentVowel.get,
-        eyeState,
-        currentCharacterTachiePresets.get
-      )
-      .tachieUrl
-  }
+  def tachieUrl: String = speakingCharacter.tachieUrl
 
   def speakingCharacter: Character = {
-    spokenByCharacterId.flatMap(id => characters.find(_.config.characterId == id)).get
+    charactersMap(spokenByCharacterId.get)
   }
 }
 
@@ -129,11 +121,7 @@ object Context {
         video = y.video <+> x.video,
         currentVowel = y.currentVowel,
         eyeState = y.eyeState,
-        characters = (y.characters ++ x.characters) // Seqにしたの少し後悔している
-          .groupBy(_.config.characterId)
-          .view.mapValues(_.head)
-          .values
-          .toSeq
+        charactersMap = x.charactersMap ++ y.charactersMap
       )
     }
     def empty: Context = Context.empty

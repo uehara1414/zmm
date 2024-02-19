@@ -219,13 +219,13 @@ class GenerateMovie(
     val codes: Map[String, (String, Option[String])] =
       xmlUtil.extractCodes(elem)
     val maths = xmlUtil.extractMaths(elem)
-    val characters = characterConfigMap.map {
+    val charactersMap = characterConfigMap.map {
       (k, v) =>
-      character.Character(
+      k -> character.Character(
         character.Config(k, voiceConfigMap(v.voiceId).asInstanceOf[VoiceVoxBackendConfig].speakerId, Tachie.prepare(v.tachieUrl.get)),
         character.State.default
       )
-    }.toSeq
+    }
 
     IO.pure(
       domain.model.Context(
@@ -237,7 +237,7 @@ class GenerateMovie(
         codes = codes,
         maths = maths,
         font = defaultFont,
-        characters = characters
+        charactersMap = charactersMap
       )
     )
   }

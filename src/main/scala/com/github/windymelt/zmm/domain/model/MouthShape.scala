@@ -29,8 +29,9 @@ object MouthShape {
     "U" -> MouthShape("u"),
     "E" -> MouthShape("e"),
     "O" -> MouthShape("o"),
-    "ッ" -> MouthShape("cl"),
+    "cl" -> MouthShape("cl"),
     "N" -> MouthShape("n"),
+    "pau" -> MouthShape(""), // 無音のことなんじゃないかな
     // 他にある？
   )
 

@@ -60,7 +60,7 @@ object Tachie {
     }
   }
 
-  private def getTachie(mouseShape: MouthShape, eyeState: EyeState, tachiePresets: TachiePresets): Tachie = {
+  def getTachie(mouseShape: MouthShape, eyeState: EyeState, tachiePresets: TachiePresets): Tachie = {
     val tachie = tachiePresets.tachies.find(t => {t.mouthShape == mouseShape && t.eyeState == eyeState}).get
     tachie match {
       case Tachie(_, _, _, true) => tachie

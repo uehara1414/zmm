@@ -16,7 +16,19 @@ object Filter {
         val spokenCtxs = vs.map { v =>
           ctx.spokenByCharacterId match {
             case None => ctx
-            case Some(cid) => ctx.copy(duration = Some(v._2), currentVowel = Some(v._1))
+            case Some(cid) =>
+              ctx.copy(
+                duration = Some(v._2),
+                currentVowel = Some(v._1),
+                charactersMap = ctx.charactersMap // こんなネストが必要になるのは設計が間違ってるんだと思うが、今の経験値ではどうせ大した設計はできないのでしばらくこれでいく
+                  .updated(
+                    cid,
+                    ctx.speakingCharacter.copy(state =
+                      ctx.speakingCharacter.state
+                        .copy(mouthShape = MouthShape.mouthShapeByVowel(v._1))
+                    )
+                  )
+              )
           }
         }
 
@@ -36,10 +48,31 @@ object Filter {
         case Some(v) =>
           v match {
             // 母音が「う」の時に瞬きするようにしてみる。
-            case "u" => Seq(
-              ctx.copy(eyeState = EyeState(openState = OpenState.Close), duration = Some(ctx.duration.get / 2)),
-              ctx.copy(eyeState = EyeState(openState = OpenState.Open), duration = Some(ctx.duration.get / 2))
-            )
+            case "u" =>
+              Seq(
+                ctx.copy(
+                  duration = Some(ctx.duration.get / 2),
+                  charactersMap = ctx.charactersMap
+                    .updated(
+                      ctx.spokenByCharacterId.get,
+                      ctx.speakingCharacter.copy(state =
+                        ctx.speakingCharacter.state
+                          .copy(eyeState = EyeState(OpenState.Close))
+                      )
+                    )
+                ),
+                ctx.copy(
+                  charactersMap = ctx.charactersMap
+                    .updated(
+                      ctx.spokenByCharacterId.get,
+                      ctx.speakingCharacter.copy(state =
+                        ctx.speakingCharacter.state
+                          .copy(eyeState = EyeState(OpenState.Open))
+                      )
+                    ),
+                  duration = Some(ctx.duration.get / 2)
+                )
+              )
             case _ => Seq(ctx)
           }
       }
