@@ -7,11 +7,6 @@ import com.github.windymelt.zmm.domain.model.character.{
 
 import scala.concurrent.duration.FiniteDuration
 
-sealed trait VoiceBackendConfig
-final case class VoiceVoxBackendConfig(speakerId: String)
-    extends VoiceBackendConfig
-final case class SilentBackendConfig() extends VoiceBackendConfig
-
 final case class CharacterConfig(
     name: String,
     voiceId: String,
@@ -32,7 +27,6 @@ final case class CharacterConfig(
  */
 
 final case class Context(
-    voiceConfigMap: Map[String, VoiceBackendConfig] = Map.empty,
     characterConfigMap: Map[String, CharacterConfig] = Map.empty,
     backgroundImageUrl: Option[String] = None,
     duration: Option[FiniteDuration] = None, // 音声合成時に明らかになるのでデフォルトではNone
@@ -102,7 +96,6 @@ object Context {
           .flatMap(id => Some(characterConfigMap(id)))
           .flatMap(_.serifColor)
       Context(
-        voiceConfigMap = x.voiceConfigMap ++ y.voiceConfigMap,
         characterConfigMap = characterConfigMap,
         backgroundImageUrl =
           y.backgroundImageUrl orElse x.backgroundImageUrl, // 後勝ち
@@ -175,7 +168,6 @@ object Context {
     }
 
     Context(
-      voiceConfigMap = empty.voiceConfigMap, // TODO
       characterConfigMap = empty.characterConfigMap, // TODO
       backgroundImageUrl =
         firstAttrTextOf(e, "backgroundImage"), // TODO: no camelCase

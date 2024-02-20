@@ -2,7 +2,7 @@ package com.github.windymelt.zmm.application.movieGenaration
 
 import cats.effect.IO
 import com.github.windymelt.zmm.domain.model.character.TachiePosition
-import com.github.windymelt.zmm.domain.model.{CharacterConfig, VoiceBackendConfig, character}
+import com.github.windymelt.zmm.domain.model.{CharacterConfig, character}
 import com.github.windymelt.zmm.{domain, util}
 
 import scala.xml.Elem
@@ -27,17 +27,16 @@ class XmlUtil {
     (elem \ "dialogue").head
   }
 
-  def extractVoiceConfigMap(elem: Elem): Map[String, VoiceBackendConfig] = {
+  def extractVoiceConfigMap(elem: Elem): Map[String, String] = {
     val voiceConfigList = elem \ "meta" \ "voiceconfig"
     voiceConfigList.map { vc =>
       vc \@ "backend" match {
         case "voicevox" =>
+          val voiceId = vc \@ "id"
           val vvc = vc \ "voicevoxconfig"
           val voiceVoxSpeakerId = vvc \@ "id"
-          (vc \@ "id", domain.model.VoiceVoxBackendConfig(voiceVoxSpeakerId))
-        case "silent" =>
-          (vc \@ "id", domain.model.SilentBackendConfig())
-        case _ => ??? // not implemented
+
+          (voiceId, voiceVoxSpeakerId)
       }
     }.toMap
   }

@@ -17,8 +17,6 @@ import com.github.windymelt.zmm.domain.model.{
   Say,
   Tachie,
   TachiePresets,
-  VoiceBackendConfig,
-  VoiceVoxBackendConfig,
   character
 }
 import com.github.windymelt.zmm.{domain, infrastructure, util}
@@ -242,9 +240,7 @@ class GenerateMovie(
       k -> character.Character(
         character.Config(
           k,
-          voiceConfigMap(v.voiceId)
-            .asInstanceOf[VoiceVoxBackendConfig]
-            .speakerId,
+          voiceConfigMap(v.voiceId),
           Tachie.prepare(v.tachieUrl.get)
         ),
         character.State.default.copy(
@@ -256,7 +252,6 @@ class GenerateMovie(
 
     IO.pure(
       domain.model.Context(
-        voiceConfigMap,
         characterConfigMap,
         defaultBackgroundImage,
         dict = dict,

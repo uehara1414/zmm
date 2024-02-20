@@ -20,11 +20,4 @@ class AudioQueryFetcher extends domain.repository.VoiceVoxComponent
   def fetch(text: String, character: Character): IO[SpeechParameters] = {
     voiceVox.audioQuery(text, character.config.speakerId)
   }
-
-  private def extractSpeakerId(character: String, ctx: Context): String = {
-    val characterConfig = ctx.characterConfigMap(character)
-    val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
-
-    voiceConfig.asInstanceOf[domain.model.VoiceVoxBackendConfig].speakerId
-  }
 }
