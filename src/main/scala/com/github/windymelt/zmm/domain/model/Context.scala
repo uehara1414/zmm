@@ -1,6 +1,9 @@
 package com.github.windymelt.zmm.domain.model
 
-import com.github.windymelt.zmm.domain.model.character.{Character, TachiePosition}
+import com.github.windymelt.zmm.domain.model.character.{
+  Character,
+  TachiePosition
+}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -14,7 +17,8 @@ final case class CharacterConfig(
     voiceId: String,
     serifColor: Option[String] = None,
     tachieUrl: Option[String] = None, // セリフカラー同様、セリフによって上書きされうる
-    position: Option[TachiePosition] = Some(TachiePosition.Right)
+    position: Option[TachiePosition] = Some(TachiePosition.Right),
+    display: Boolean = false
 )
 
 /*
@@ -56,11 +60,16 @@ final case class Context(
 
   def tachieUrl: Option[String] = rightCharacter.map(c => c.tachieUrl)
 
-  def rightCharacter: Option[Character] = charactersMap.values.find(c => c.state.position == TachiePosition.Right && c.state.isSpeaking)
+  def rightCharacter: Option[Character] = charactersMap.values.find(c =>
+    c.state.position == TachiePosition.Right && c.state.display
+  )
 
-  def leftCharacter: Option[Character] = charactersMap.values.find(c => c.state.position == TachiePosition.Left && c.state.isSpeaking)
+  def leftCharacter: Option[Character] = charactersMap.values.find(c =>
+    c.state.position == TachiePosition.Left && c.state.display
+  )
 
-  def leftTachieUrl: Option[String] = leftCharacter.flatMap(c => Some(c.tachieUrl))
+  def leftTachieUrl: Option[String] =
+    leftCharacter.flatMap(c => Some(c.tachieUrl))
 
   def speakingCharacter: Option[Character] = {
     charactersMap.values.find(_.state.isSpeaking)
@@ -81,12 +90,17 @@ object Context {
   // Context is a Monoid
   implicit val monoidForContext: Monoid[Context] = new Monoid[Context] {
     def combine(x: Context, y: Context): Context = {
-      val xCharacterId: Option[String] = x.speakingCharacter.flatMap(xc => Some(xc.config.characterId))
-      val yCharacterId: Option[String] = y.speakingCharacter.flatMap(yc => Some(yc.config.characterId))
+      val xCharacterId: Option[String] =
+        x.speakingCharacter.flatMap(xc => Some(xc.config.characterId))
+      val yCharacterId: Option[String] =
+        y.speakingCharacter.flatMap(yc => Some(yc.config.characterId))
       val speakingCharacterId: Option[String] = xCharacterId orElse yCharacterId
-      val characterConfigMap: Map[String, CharacterConfig] = x.characterConfigMap ++ y.characterConfigMap
+      val characterConfigMap: Map[String, CharacterConfig] =
+        x.characterConfigMap ++ y.characterConfigMap
       val serifColor =
-        y.serifColor orElse x.serifColor orElse speakingCharacterId.flatMap(id => Some(characterConfigMap(id))).flatMap(_.serifColor)
+        y.serifColor orElse x.serifColor orElse speakingCharacterId
+          .flatMap(id => Some(characterConfigMap(id)))
+          .flatMap(_.serifColor)
       Context(
         voiceConfigMap = x.voiceConfigMap ++ y.voiceConfigMap,
         characterConfigMap = characterConfigMap,
@@ -143,17 +157,19 @@ object Context {
 
     val updatedCharactersMap = by match {
       case Some(id) => {
-        val updatedCharacter = ctx.charactersMap(id).copy(
-          state = ctx.charactersMap(id).state.copy(isSpeaking = true)
-        )
-        ctx.charactersMap.map(
-          (k, v) => {
+        val updatedCharacter = ctx
+          .charactersMap(id)
+          .copy(
+            state = ctx.charactersMap(id).state.copy(isSpeaking = true)
+          )
+        ctx.charactersMap
+          .map((k, v) => {
             k -> v.copy(state = v.state.copy(isSpeaking = false))
-          }
-        ).updated(
-          id,
-          updatedCharacter
-        )
+          })
+          .updated(
+            id,
+            updatedCharacter
+          )
       }
       case _ => ctx.charactersMap
     }

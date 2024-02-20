@@ -9,7 +9,7 @@ object TachiePosition {
   case object Right extends TachiePosition
 }
 
-case class State(mouthShape: MouthShape, eyeState: EyeState, isSpeaking: Boolean = false, position: TachiePosition = TachiePosition.Right)
+case class State(mouthShape: MouthShape, eyeState: EyeState, isSpeaking: Boolean = false, display: Boolean = false, position: TachiePosition = TachiePosition.Right)
 case class Config(characterId: String, speakerId: String, presets: TachiePresets)
 
 case class Character(config: Config, state: State) {

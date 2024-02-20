@@ -3,8 +3,24 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
-import com.github.windymelt.zmm.application.movieGenaration.{AudioQueryFetcher, DictionaryApplier, Html, IndicatorHelper, WavGenerator, XmlUtil}
-import com.github.windymelt.zmm.domain.model.{Context, GeneratedWav, Say, Tachie, TachiePresets, VoiceBackendConfig, VoiceVoxBackendConfig, character}
+import com.github.windymelt.zmm.application.movieGenaration.{
+  AudioQueryFetcher,
+  DictionaryApplier,
+  Html,
+  IndicatorHelper,
+  WavGenerator,
+  XmlUtil
+}
+import com.github.windymelt.zmm.domain.model.{
+  Context,
+  GeneratedWav,
+  Say,
+  Tachie,
+  TachiePresets,
+  VoiceBackendConfig,
+  VoiceVoxBackendConfig,
+  character
+}
 import com.github.windymelt.zmm.{domain, infrastructure, util}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -211,7 +227,9 @@ class GenerateMovie(
   private def prepareDefaultContext(elem: scala.xml.Elem): IO[Context] = {
     val voiceConfigMap = xmlUtil.extractVoiceConfigMap(elem)
     val characterConfigMap = xmlUtil.extractCharacterConfigMap(elem)
-    val tachiePresetsMap = Map.from(characterConfigMap.map { (k, v) => (k, Tachie.prepare(v.tachieUrl.get))})
+    val tachiePresetsMap = Map.from(characterConfigMap.map { (k, v) =>
+      (k, Tachie.prepare(v.tachieUrl.get))
+    })
     val defaultBackgroundImage = xmlUtil.extractDefaultBackgroundImage(elem)
     val defaultFont = xmlUtil.extractDefaultFont(elem)
     // 発音調整などに使う文字列辞書。今のところVOICEVOXの発音辞書に使っている
@@ -220,13 +238,19 @@ class GenerateMovie(
     val codes: Map[String, (String, Option[String])] =
       xmlUtil.extractCodes(elem)
     val maths = xmlUtil.extractMaths(elem)
-    val charactersMap = characterConfigMap.map {
-      (k, v) =>
+    val charactersMap = characterConfigMap.map { (k, v) =>
       k -> character.Character(
-        character.Config(k, 
-          voiceConfigMap(v.voiceId).asInstanceOf[VoiceVoxBackendConfig].speakerId,
-          Tachie.prepare(v.tachieUrl.get)),
-        character.State.default.copy(position = v.position.getOrElse(TachiePosition.Right))
+        character.Config(
+          k,
+          voiceConfigMap(v.voiceId)
+            .asInstanceOf[VoiceVoxBackendConfig]
+            .speakerId,
+          Tachie.prepare(v.tachieUrl.get)
+        ),
+        character.State.default.copy(
+          position = v.position.getOrElse(TachiePosition.Right),
+          display = v.display
+        )
       )
     }
 

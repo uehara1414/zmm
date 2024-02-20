@@ -54,12 +54,18 @@ class XmlUtil {
         case Some("right") => Some(TachiePosition.Right)
         case _ => Some(TachiePosition.Right)
       }
+      val display = Some(cc \@ "display").filterNot(_.isEmpty()) match {
+        case Some("true") => true
+        case Some("false") => false
+        case _ => false
+      }
       name -> CharacterConfig(
         name,
         cc \@ "voice-id",
         defaultSerifColor,
         tachieUrl,
-        position
+        position,
+        display
       )
     }.toMap
   }
