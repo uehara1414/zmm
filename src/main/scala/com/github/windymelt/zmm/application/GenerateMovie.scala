@@ -102,7 +102,7 @@ class GenerateMovie(
       x <- xmlElem
       _ <- xmlUtil.sanitize(x)
       defaultCtx <- prepareDefaultContext(x)
-      _ <- dictionaryApplier.execute(defaultCtx.dict)
+      _ <- dictionaryApplier.execute(x)
       // dialogue要素から取得したセリフとコンテキストのペアを作成する
       sayCtxPairs <- IO.pure {
         Context.sayContextPairFromNode(
@@ -232,7 +232,6 @@ class GenerateMovie(
     val defaultFont = xmlUtil.extractDefaultFont(elem)
     // 発音調整などに使う文字列辞書。今のところVOICEVOXの発音辞書に使っている
     // (word, pronounce, accent lower point)
-    val dict = xmlUtil.extractPronounceDict(elem)
     val codes: Map[String, (String, Option[String])] =
       xmlUtil.extractCodes(elem)
     val maths = xmlUtil.extractMaths(elem)
@@ -254,7 +253,6 @@ class GenerateMovie(
       domain.model.Context(
         characterConfigMap,
         defaultBackgroundImage,
-        dict = dict,
         codes = codes,
         maths = maths,
         font = defaultFont,

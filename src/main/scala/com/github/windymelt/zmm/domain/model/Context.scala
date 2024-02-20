@@ -34,7 +34,6 @@ final case class Context(
     speed: Option[String] = Some("1.0"),
     font: Option[String] = None,
     serifColor: Option[String] = None, // どう使うかはテンプレート依存
-    dict: Seq[(String, String, Int)] = Seq.empty,
     additionalTemplateVariables: Map[String, String] = Map.empty,
     bgm: Option[String] = None,
     codes: Map[String, (String, Option[String])] =
@@ -104,7 +103,6 @@ object Context {
         speed = y.speed orElse x.speed, // 後勝ち
         font = y.font orElse x.font, // 後勝ち
         serifColor = serifColor,
-        dict = y.dict |+| x.dict,
         additionalTemplateVariables =
           x.additionalTemplateVariables ++ y.additionalTemplateVariables,
         bgm = y.bgm orElse x.bgm,

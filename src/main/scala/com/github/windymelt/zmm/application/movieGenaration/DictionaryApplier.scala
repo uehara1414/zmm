@@ -2,6 +2,7 @@ package com.github.windymelt.zmm.application.movieGenaration
 
 import cats.effect.IO
 import com.github.windymelt.zmm.{domain, infrastructure, util}
+import scala.xml.Elem
 
 class DictionaryApplier
     extends domain.repository.VoiceVoxComponent
@@ -12,6 +13,7 @@ class DictionaryApplier
     sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
 
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
+  private def xmlUtil = new XmlUtil()
 
   /** 辞書要素を反映させる。
    *
@@ -22,7 +24,8 @@ class DictionaryApplier
    * @return
    * 有用な情報は返されない
    */
-  def execute(dict: Seq[(String, String, Int)]): IO[Unit] = {
+  def execute(elem: Elem): IO[Unit] = {
+    val dict = xmlUtil.extractPronounceDict(elem)
     val registerList = dict.map { d =>
       voiceVox.registerDict(d._1, d._2, d._3)
     }
