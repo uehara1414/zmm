@@ -10,7 +10,7 @@ object TachiePosition {
 }
 
 case class State(mouthShape: MouthShape, eyeState: EyeState, isSpeaking: Boolean = false, display: Boolean = false, position: TachiePosition = TachiePosition.Right)
-case class Config(characterId: String, speakerId: String, presets: TachiePresets)
+case class Config(characterId: String, speakerId: String, presets: TachiePresets, serifColor: Option[String])
 
 case class Character(config: Config, state: State) {
   def tachieUrl: String = {

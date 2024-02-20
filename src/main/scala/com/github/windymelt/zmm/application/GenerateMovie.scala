@@ -240,7 +240,8 @@ class GenerateMovie(
         character.Config(
           k,
           voiceConfigMap(v.voiceId),
-          Tachie.prepare(v.tachieUrl.get)
+          Tachie.prepare(v.tachieUrl.get),
+          serifColor = v.serifColor,
         ),
         character.State.default.copy(
           position = v.position.getOrElse(TachiePosition.Right),
@@ -251,7 +252,6 @@ class GenerateMovie(
 
     IO.pure(
       domain.model.Context(
-        characterConfigMap,
         defaultBackgroundImage,
         codes = codes,
         maths = maths,

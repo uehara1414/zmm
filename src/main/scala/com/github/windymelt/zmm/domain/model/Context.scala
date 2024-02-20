@@ -7,15 +7,6 @@ import com.github.windymelt.zmm.domain.model.character.{
 
 import scala.concurrent.duration.FiniteDuration
 
-final case class CharacterConfig(
-    name: String,
-    voiceId: String,
-    serifColor: Option[String] = None,
-    tachieUrl: Option[String] = None, // セリフカラー同様、セリフによって上書きされうる
-    position: Option[TachiePosition] = Some(TachiePosition.Right),
-    display: Boolean = false
-)
-
 /*
  Contextの4要素:
  - Context class
@@ -27,13 +18,11 @@ final case class CharacterConfig(
  */
 
 final case class Context(
-    characterConfigMap: Map[String, CharacterConfig] = Map.empty,
     backgroundImageUrl: Option[String] = None,
     duration: Option[FiniteDuration] = None, // 音声合成時に明らかになるのでデフォルトではNone
     spokenVowels: Option[Seq[(String, FiniteDuration)]] = None, // 口パクのために使う母音情報
     speed: Option[String] = Some("1.0"),
     font: Option[String] = None,
-    serifColor: Option[String] = None, // どう使うかはテンプレート依存
     additionalTemplateVariables: Map[String, String] = Map.empty,
     bgm: Option[String] = None,
     codes: Map[String, (String, Option[String])] =
@@ -67,6 +56,10 @@ final case class Context(
   def speakingCharacter: Option[Character] = {
     charactersMap.values.find(_.state.isSpeaking)
   }
+
+  def serifColor: String = {
+    speakingCharacter.flatMap(c => c.config.serifColor).getOrElse("black")
+  }
 }
 
 // TODO: 後で動かす
@@ -88,21 +81,13 @@ object Context {
       val yCharacterId: Option[String] =
         y.speakingCharacter.flatMap(yc => Some(yc.config.characterId))
       val speakingCharacterId: Option[String] = xCharacterId orElse yCharacterId
-      val characterConfigMap: Map[String, CharacterConfig] =
-        x.characterConfigMap ++ y.characterConfigMap
-      val serifColor =
-        y.serifColor orElse x.serifColor orElse speakingCharacterId
-          .flatMap(id => Some(characterConfigMap(id)))
-          .flatMap(_.serifColor)
       Context(
-        characterConfigMap = characterConfigMap,
         backgroundImageUrl =
           y.backgroundImageUrl orElse x.backgroundImageUrl, // 後勝ち
         duration = y.duration <+> x.duration,
         spokenVowels = y.spokenVowels <+> x.spokenVowels,
         speed = y.speed orElse x.speed, // 後勝ち
         font = y.font orElse x.font, // 後勝ち
-        serifColor = serifColor,
         additionalTemplateVariables =
           x.additionalTemplateVariables ++ y.additionalTemplateVariables,
         bgm = y.bgm orElse x.bgm,
@@ -166,12 +151,10 @@ object Context {
     }
 
     Context(
-      characterConfigMap = empty.characterConfigMap, // TODO
       backgroundImageUrl =
         firstAttrTextOf(e, "backgroundImage"), // TODO: no camelCase
       speed = firstAttrTextOf(e, "speed"),
       font = firstAttrTextOf(e, "font"),
-      serifColor = firstAttrTextOf(e, "serif-color"),
       additionalTemplateVariables = atvs,
       bgm = firstAttrTextOf(e, "bgm"),
       sic = firstAttrTextOf(e, "sic"),

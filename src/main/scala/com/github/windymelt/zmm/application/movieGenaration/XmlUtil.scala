@@ -2,10 +2,19 @@ package com.github.windymelt.zmm.application.movieGenaration
 
 import cats.effect.IO
 import com.github.windymelt.zmm.domain.model.character.TachiePosition
-import com.github.windymelt.zmm.domain.model.{CharacterConfig, character}
+import com.github.windymelt.zmm.domain.model.character
 import com.github.windymelt.zmm.{domain, util}
 
 import scala.xml.Elem
+
+final case class CharacterConfig(
+    name: String,
+    voiceId: String,
+    serifColor: Option[String] = None,
+    tachieUrl: Option[String] = None, // セリフカラー同様、セリフによって上書きされうる
+    position: Option[TachiePosition] = Some(TachiePosition.Right),
+    display: Boolean = false
+)
 
 // とりあえずここにxml関連の処理を凝集させてみる。その後に責務を考える
 class XmlUtil {
@@ -49,14 +58,14 @@ class XmlUtil {
       val defaultSerifColor = Some(cc \@ "serif-color").filterNot(_.isEmpty())
       val tachieUrl = Some(cc \@ "tachie-url").filterNot(_.isEmpty())
       val position = Some(cc \@ "position").filterNot(_.isEmpty()) match {
-        case Some("left") => Some(TachiePosition.Left)
+        case Some("left")  => Some(TachiePosition.Left)
         case Some("right") => Some(TachiePosition.Right)
-        case _ => Some(TachiePosition.Right)
+        case _             => Some(TachiePosition.Right)
       }
       val display = Some(cc \@ "display").filterNot(_.isEmpty()) match {
-        case Some("true") => true
+        case Some("true")  => true
         case Some("false") => false
-        case _ => false
+        case _             => false
       }
       name -> CharacterConfig(
         name,
