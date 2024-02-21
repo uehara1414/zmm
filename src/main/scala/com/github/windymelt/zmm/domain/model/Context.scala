@@ -1,9 +1,7 @@
 package com.github.windymelt.zmm.domain.model
 
-import com.github.windymelt.zmm.domain.model.character.{
-  Character,
-  TachiePosition
-}
+import com.github.windymelt.zmm.domain.model.character.{Character, TachiePosition}
+import com.github.windymelt.zmm.domain.model.speech.Mora
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -29,7 +27,6 @@ final case class Context(
       Map.empty, // id -> (code, lang?)
     maths: Map[String, String] = Map.empty, // id -> LaTeX string
     sic: Option[String] = None, // 代替読みを設定できる(数式などで使う)
-    silentLength: Option[FiniteDuration] = None, // by=silentな場合に停止する時間
     video: Option[String] = None, // 背景に合成する動画
     currentVowel: Option[String] = None,
     charactersMap: Map[String, Character] = Map.empty[String, Character]
@@ -64,7 +61,10 @@ final case class Context(
 
 // TODO: 後で動かす
 sealed trait DialogueTree
-final case class Say(val text: String)
+
+final case class Say(text: String)
+final case class Speak(text: String, moras: Seq[Mora])
+
 // TODO: 仮にsceneだけとしている(他にも色々ありそう)
 final case class Scene(children: Seq[DialogueTree])
 
@@ -95,19 +95,19 @@ object Context {
           x.codes |+| y.codes, // Map の Monoid性を応用すると、同一idで書かれたコードは結合されるという好ましい特性が表われるのでこうしている。additionalTemplateVariablesに畳んでもいいかもしれない。現在のコードはadditionalTemplateVariablesに入れている
         maths = x.maths |+| y.maths,
         sic = y.sic orElse x.sic,
-        silentLength = y.silentLength <+> x.silentLength,
         video = y.video <+> x.video,
         currentVowel = y.currentVowel,
         charactersMap = x.charactersMap ++ y.charactersMap
       )
     }
+
     def empty: Context = Context.empty
   }
 
   def sayContextPairFromNode(
-      dialogueElem: scala.xml.Node,
-      currentContext: Context = Context.empty
-  ): Seq[(Say, Context)] = dialogueElem match {
+                              dialogueElem: scala.xml.Node,
+                              currentContext: Context = Context.empty
+                            ): Seq[(Say, Context)] = dialogueElem match {
     case Comment(_) => Seq.empty // コメントは無視する
     case Text(t) if t.forall(_.isWhitespace) =>
       Seq.empty // 空行やただの入れ子でコンテキストが生成されないようにする
@@ -158,9 +158,7 @@ object Context {
       additionalTemplateVariables = atvs,
       bgm = firstAttrTextOf(e, "bgm"),
       sic = firstAttrTextOf(e, "sic"),
-      silentLength = firstAttrTextOf(e, "silent-length").map(l =>
-        FiniteDuration.apply(Integer.parseInt(l), "second")
-      ),
+      duration = firstAttrTextOf(e, "duration").map(l => FiniteDuration.apply(Integer.parseInt(l), "second")),
       video = firstAttrTextOf(e, "video"),
       charactersMap = updatedCharactersMap
     )

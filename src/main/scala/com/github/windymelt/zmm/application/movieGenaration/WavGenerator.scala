@@ -11,17 +11,18 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import scala.concurrent.duration.FiniteDuration
 
 class WavGenerator(logLevel: String = "INFO")
-    extends domain.repository.VoiceVoxComponent
+  extends domain.repository.VoiceVoxComponent
     with infrastructure.VoiceVoxComponent
     with util.UtilComponent
     with domain.repository.FFmpegComponent
     with infrastructure.FFmpegComponent {
-  val voiceVoxUri =
-    sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
+  val voiceVoxUri = sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
 
   // 指定してないなら3秒にしているが理由はない
-  val defaultSilentLength = FiniteDuration(3, "second")
+  private val defaultSilentLength: FiniteDuration = FiniteDuration(3, "second")
+
   private def audioQueryFetcher = new AudioQueryFetcher()
+
   implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   def ffmpeg =
@@ -30,24 +31,15 @@ class WavGenerator(logLevel: String = "INFO")
       verbosity = logLevel match {
         case "DEBUG" => ConcreteFFmpeg.Verbose
         case "TRACE" => ConcreteFFmpeg.Verbose
-        case _       => ConcreteFFmpeg.Quiet
+        case _ => ConcreteFFmpeg.Quiet
       }
     ) // TODO: respect construct parameter
 
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
 
-  def execute(
-      speech: SpeechParameters,
-      character: Character
-  ): IO[fs2.Stream[IO, Byte]] = {
-    voiceVox.synthesis(speech, character.config.speakerId)
-  }
-
   def generateSilence(ctx: Context): IO[GeneratedWav] =
     for {
-      len <- IO.pure(
-        ctx.silentLength.getOrElse(defaultSilentLength)
-      )
+      len <- IO.pure(ctx.duration.getOrElse(defaultSilentLength))
       sha1Hex <- sha1HexCode(len.toString.getBytes)
       path <- IO.pure(os.Path(s"${os.pwd}/artifacts/silence_$sha1Hex.wav"))
       // CLI出力まで持ってくるのがだるいので一旦コメントアウト
@@ -67,9 +59,7 @@ class WavGenerator(logLevel: String = "INFO")
         ctx.speakingCharacter.get
       )
       _ <- logger.debug(speech.toString())
-      speech <- ctx.speed map (sp =>
-        voiceVox.controlSpeed(speech, sp)
-      ) getOrElse (IO.pure(speech))
+      speech <- ctx.speed map (sp => voiceVox.controlSpeed(speech, sp)) getOrElse (IO.pure(speech))
       // CLI出力まで持ってくるのがだるいので一旦コメントアウト
       // wav <- backgroundIndicator("Synthesizing wav").use { _ =>
       wav <- execute(speech, ctx.speakingCharacter.get)
@@ -80,4 +70,8 @@ class WavGenerator(logLevel: String = "INFO")
       dur <- ffmpeg.getWavDuration(path.toString)
       moras <- voiceVox.getVowels(speech)
     } yield GeneratedWav(path, dur, moras)
+
+  private def execute(speech: SpeechParameters, character: Character): IO[fs2.Stream[IO, Byte]] = {
+    voiceVox.synthesis(speech, character.config.speakerId)
+  }
 }
